@@ -1,0 +1,275 @@
+{% extends "base.html" %}
+{% block title %}Web Fetch — LeadVault{% endblock %}
+{% block page_title %}Web Fetch &amp; Scraping Module{% endblock %}
+{% block page_sub %}Step 2 — Extract contact info from any public webpage{% endblock %}
+
+{% block content %}
+<!-- ── PIPELINE STEP BAR (full 5 steps) ── -->
+<div class="pipeline mb-4">
+  <div class="pipeline-step done"><span class="ps-num">✔</span><i class="bi bi-search"></i> Search</div>
+  <div class="pipeline-step active"><span class="ps-num">02</span><i class="bi bi-cloud-download"></i> Web Fetch</div>
+  <div class="pipeline-step"><span class="ps-num">03</span><i class="bi bi-cpu"></i> AI Classify</div>
+  <div class="pipeline-step"><span class="ps-num">04</span><i class="bi bi-people"></i> Leads DB</div>
+  <div class="pipeline-step"><span class="ps-num">05</span><i class="bi bi-envelope-paper"></i> Email</div>
+</div>
+
+<div class="row g-3">
+  <div class="col-md-5">
+    <div class="card mb-3">
+      <div class="card-header"><i class="bi bi-link-45deg me-2"></i>Fetch a Public URL</div>
+      <div class="card-body">
+        <label class="form-label" style="font-size:13px; font-weight:600;">Target URL</label>
+        <input type="url" id="urlInput" class="form-control mb-2" list="urlHistory"
+          placeholder="https://example-business.com" autocomplete="off"/>
+        <datalist id="urlHistory"></datalist>
+        <div class="text-muted mb-3" style="font-size:12px;">
+          <i class="bi bi-shield-check me-1"></i>
+          Only public pages are fetched — no login or restricted content.
+        </div>
+        <button class="btn btn-accent w-100" id="fetchBtn" onclick="runFetch()">
+          <i class="bi bi-cloud-download me-1"></i> Fetch &amp; Extract
+        </button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><i class="bi bi-lightbulb me-2"></i>How it works</div>
+      <div class="card-body" style="font-size:13px; color:#4a5568; line-height:1.8;">
+        <p class="mb-2"><strong>1.</strong> Paste any public business URL</p>
+        <p class="mb-2"><strong>2.</strong> The system fetches the page using <code>requests</code></p>
+        <p class="mb-2"><strong>3.</strong> BeautifulSoup parses the HTML</p>
+        <p class="mb-2"><strong>4.</strong> Regex extracts emails &amp; phone numbers</p>
+        <p class="mb-0"><strong>5.</strong> Save the lead directly to the database</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-7">
+    <div id="logWrap" style="display:none;" class="mb-3">
+      <div class="log-box" id="logBox"></div>
+    </div>
+
+    <div id="resultWrap" style="display:none;">
+      <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-file-earmark-text me-2"></i>Extracted Data</span>
+          <span class="badge bg-success" id="extractBadge">Success</span>
+        </div>
+        <div class="card-body">
+          <table class="table table-sm mb-0" style="font-size:13px;">
+            <tr><td class="text-muted" style="width:110px;">Page title</td><td id="rTitle">—</td></tr>
+            <tr><td class="text-muted">Business name</td><td id="rName">—</td></tr>
+            <tr><td class="text-muted">Description</td><td id="rDesc" style="font-size:12px; color:#718096;">—</td></tr>
+            <tr><td class="text-muted">Emails found</td><td id="rEmails">—</td></tr>
+            <tr><td class="text-muted">Phones found</td><td id="rPhones">—</td></tr>
+            <tr><td class="text-muted">Social links</td><td id="rSocial">—</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- Save to DB form -->
+      <div class="card">
+        <div class="card-header"><i class="bi bi-database-add me-2"></i>Save to Leads Database</div>
+        <div class="card-body">
+          <div class="row g-2 mb-2">
+            <div class="col-6">
+              <label class="form-label" style="font-size:12px;">Name</label>
+              <input class="form-control form-control-sm" id="saveName" autocomplete="organization"/>
+            </div>
+            <div class="col-6">
+              <label class="form-label" style="font-size:12px;">Email</label>
+              <input class="form-control form-control-sm" id="saveEmail" type="email" autocomplete="email"/>
+            </div>
+            <div class="col-6">
+              <label class="form-label" style="font-size:12px;">Phone</label>
+              <input class="form-control form-control-sm" id="savePhone" autocomplete="tel"/>
+            </div>
+            <div class="col-6">
+              <label class="form-label" style="font-size:12px;">Interests</label>
+              <input class="form-control form-control-sm" id="saveInterests"
+                placeholder="e.g. phones, electronics" autocomplete="on"/>
+            </div>
+          </div>
+          <button class="btn btn-accent w-100" id="saveBtn" onclick="saveToDb()">
+            <i class="bi bi-check2-circle me-1"></i> Save Lead
+          </button>
+          <div id="saveMsg" class="mt-2" style="display:none;"></div>
+        </div>
+      </div>
+
+      <div class="mt-3">
+        <a href="/leads/" class="btn btn-outline-primary w-100">
+          <i class="bi bi-arrow-right me-1"></i> View All Leads in Database
+        </a>
+      </div>
+    </div>
+
+    <div id="emptyState" class="text-center py-5 text-muted">
+      <i class="bi bi-cloud-arrow-down" style="font-size:42px; opacity:.3;"></i>
+      <p class="mt-3">Enter a URL above and click Fetch</p>
+    </div>
+  </div>
+</div>
+
+<!-- ── STEP NAVIGATION (Back / Next) ── -->
+<div class="step-nav">
+  <a href="/search/" class="btn-step btn-step-back">
+    <i class="bi bi-arrow-left"></i> Back: Search
+  </a>
+  <span class="step-nav-label">Step 2 of 5 · Web Fetch</span>
+  <a href="/classify/" class="btn-step btn-step-next">
+    Next: AI Classify <i class="bi bi-arrow-right"></i>
+  </a>
+</div>
+
+<style>
+  .step-nav {
+    display:flex; align-items:center; justify-content:space-between;
+    margin-top:28px; padding-top:20px; border-top:1px solid #e2e8f0;
+  }
+  .step-nav-label { font-size:12px; color:#94a3b8; font-weight:500; }
+  .btn-step {
+    display:inline-flex; align-items:center; gap:8px;
+    padding:10px 20px; border-radius:10px; font-size:14px; font-weight:600;
+    text-decoration:none; transition:all .2s;
+  }
+  .btn-step-back {
+    background:rgba(255,255,255,.05); color:#a78bfa; border:1.5px solid rgba(124,58,237,.22);
+  }
+  .btn-step-back:hover { border-color:#7c3aed; background:rgba(124,58,237,.1); color:#a78bfa; }
+  .btn-step-next {
+    background:linear-gradient(135deg,#7c3aed,#6d28d9); color:#fff;
+    border:none; box-shadow:0 4px 14px rgba(124,58,237,0.35);
+  }
+  .btn-step-next:hover { transform:translateY(-1px); box-shadow:0 6px 18px rgba(124,58,237,0.5); color:#fff; }
+  @media (max-width:600px){ .step-nav-label{ display:none; } }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ── URL history autocomplete ──
+function _saveUrl(url) {
+  let hist = JSON.parse(localStorage.getItem('lv_urls') || '[]');
+  hist = [url, ...hist.filter(u => u !== url)].slice(0, 20);
+  localStorage.setItem('lv_urls', JSON.stringify(hist));
+  document.getElementById('urlHistory').innerHTML = hist.map(u => `<option value="${u}">`).join('');
+}
+(function _loadUrlHistory() {
+  const hist = JSON.parse(localStorage.getItem('lv_urls') || '[]');
+  document.getElementById('urlHistory').innerHTML = hist.map(u => `<option value="${u}">`).join('');
+})();
+
+let currentUrl = '';
+
+function log(msg, type='') {
+  const box = document.getElementById('logBox');
+  document.getElementById('logWrap').style.display = 'block';
+  const cls = type === 'ok' ? 'log-ok' : type === 'err' ? 'log-err' : type === 'dim' ? 'log-dim' : '';
+  const t = new Date().toLocaleTimeString('en-US', {hour12:false});
+  box.innerHTML += `<span class="${cls}">[${t}] ${msg}</span>\n`;
+  box.scrollTop = box.scrollHeight;
+}
+
+async function runFetch() {
+  const url = document.getElementById('urlInput').value.trim();
+  if (!url) { alert('Please enter a URL'); return; }
+
+  currentUrl = url;
+  const btn = document.getElementById('fetchBtn');
+  btn.disabled = true; btn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i> Fetching…';
+  document.getElementById('logBox').innerHTML = '';
+  document.getElementById('logWrap').style.display = 'block';
+  document.getElementById('resultWrap').style.display = 'none';
+  document.getElementById('emptyState').style.display = 'none';
+
+  log(`Fetching: ${url}`);
+  log('Sending HTTP GET request…', 'dim');
+
+  try {
+    const resp = await fetch('/fetch/scrape', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url })
+    });
+    const text = await resp.text();
+    let data;
+    try { data = JSON.parse(text); }
+    catch(e) { log('Server error: ' + text.substring(0,100), 'err'); btn.disabled=false; btn.innerHTML='<i class="bi bi-cloud-download me-1"></i> Fetch & Extract'; return; }
+
+    if (data.status === 'ok') {
+      const d = data.data;
+      log('Page fetched successfully', 'ok');
+      log(`Parsing HTML with BeautifulSoup…`, 'dim');
+      setTimeout(() => {
+        log(`Emails found: ${d.emails.length} | Phones: ${d.phones.length}`, d.emails.length ? 'ok' : 'dim');
+        log('Extraction complete', 'ok');
+        renderResult(d);
+        btn.disabled = false; btn.innerHTML = '<i class="bi bi-cloud-download me-1"></i> Fetch Again';
+      }, 500);
+    } else {
+      log('Error: ' + (data.message || 'Unknown error'), 'err');
+      btn.disabled = false; btn.innerHTML = '<i class="bi bi-cloud-download me-1"></i> Fetch & Extract';
+    }
+  } catch(e) {
+    log('Network error: ' + e.message, 'err');
+    btn.disabled = false; btn.innerHTML = '<i class="bi bi-cloud-download me-1"></i> Fetch & Extract';
+  }
+}
+
+function renderResult(d) {
+  _saveUrl(currentUrl);
+  document.getElementById('rTitle').textContent    = d.title || '—';
+  document.getElementById('rName').textContent     = d.name  || '—';
+  document.getElementById('rDesc').textContent     = d.description || '—';
+  document.getElementById('rEmails').innerHTML     = d.emails.length
+    ? d.emails.map(e => `<span class="tag-pill green me-1">${e}</span>`).join('') : '—';
+  document.getElementById('rPhones').innerHTML     = d.phones.length
+    ? d.phones.map(p => `<span class="tag-pill me-1">${p}</span>`).join('') : '—';
+  document.getElementById('rSocial').innerHTML     = d.social_links.length
+    ? d.social_links.map(s => `<a href="${s}" target="_blank" class="tag-pill me-1" style="text-decoration:none;">${s.replace('https://','').substring(0,30)}…</a>`).join('') : '—';
+
+  // Pre-fill save form
+  document.getElementById('saveName').value   = d.name  || '';
+  document.getElementById('saveEmail').value  = d.emails[0] || '';
+  document.getElementById('savePhone').value  = d.phones[0] || '';
+
+  document.getElementById('resultWrap').style.display = 'block';
+  document.getElementById('saveMsg').style.display = 'none';
+}
+
+async function saveToDb() {
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true; btn.innerHTML = '<i class="bi bi-hourglass"></i> Saving…';
+
+  const payload = {
+    name:       document.getElementById('saveName').value,
+    email:      document.getElementById('saveEmail').value,
+    phone:      document.getElementById('savePhone').value,
+    interests:  document.getElementById('saveInterests').value,
+    source_url: currentUrl,
+    platform:   'web',
+    score:      60
+  };
+
+  try {
+    const r = await fetch('/leads/add', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+    const d = await r.json();
+    const msg = document.getElementById('saveMsg');
+    msg.style.display = 'block';
+    if (d.status === 'ok') {
+      msg.innerHTML = '<div class="alert alert-success py-2 mb-0"><i class="bi bi-check-circle me-2"></i>Lead saved to database!</div>';
+      btn.innerHTML = '<i class="bi bi-check me-1"></i> Saved!';
+    } else {
+      msg.innerHTML = '<div class="alert alert-danger py-2 mb-0">Error saving lead</div>';
+      btn.disabled = false; btn.innerHTML = 'Save Lead';
+    }
+  } catch(e) {
+    btn.disabled = false; btn.innerHTML = 'Save Lead';
+  }
+}
+</script>
+{% endblock %}

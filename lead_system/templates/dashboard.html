@@ -1,0 +1,278 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — LeadVault{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block page_sub %}Real-time analytics and system overview{% endblock %}
+
+{% block content %}
+<style>
+  /* ── KPI Cards ── */
+  .kpi-card {
+    background:linear-gradient(145deg,var(--card),var(--card2));
+    border:1px solid var(--border); border-radius:14px; padding:20px 22px;
+    position:relative; overflow:hidden;
+    box-shadow:0 2px 16px rgba(124,58,237,.1);
+    transition:transform .2s, box-shadow .2s, border-color .2s;
+    animation:fadeUp .42s ease both;
+  }
+  .kpi-card:hover { transform:translateY(-3px); box-shadow:0 12px 40px rgba(167,139,250,.1); border-color:var(--border2); }
+  .kpi-card::after {
+    content:''; position:absolute; right:-20px; top:-20px;
+    width:90px; height:90px; border-radius:50%; opacity:.14;
+  }
+  .kpi-card.blue::after   { background:var(--accent); }
+  .kpi-card.green::after  { background:var(--green); }
+  .kpi-card.orange::after { background:var(--gold); }
+  .kpi-card.purple::after { background:var(--cyan); }
+  .kpi-card.blue   { border-top:2px solid rgba(124,58,237,.5); }
+  .kpi-card.green  { border-top:2px solid rgba(16,185,129,.5); }
+  .kpi-card.orange { border-top:2px solid rgba(245,158,11,.5); }
+  .kpi-card.purple { border-top:2px solid rgba(6,182,212,.5); }
+  .kpi-icon { width:44px; height:44px; border-radius:11px; display:flex; align-items:center; justify-content:center; font-size:20px; margin-bottom:12px; }
+  .kpi-icon.blue   { background:rgba(124,58,237,.18); color:#60a5fa; }
+  .kpi-icon.green  { background:rgba(16,185,129,.15); color:#34d399; }
+  .kpi-icon.orange { background:rgba(245,158,11,.15); color:#fbbf24; }
+  .kpi-icon.purple { background:rgba(6,182,212,.15);  color:var(--cyan); }
+  .kpi-value { font-size:32px; font-weight:800; color:var(--text); line-height:1; font-family:'Sora',sans-serif; }
+  .kpi-label { font-size:13px; color:var(--text2); margin-top:6px; }
+  .kpi-trend { font-size:11px; margin-top:8px; display:inline-flex; align-items:center; gap:3px; padding:2px 8px; border-radius:12px; }
+  .kpi-trend.up { background:rgba(124,58,237,.14); color:#60a5fa; border:1px solid rgba(124,58,237,.25); }
+
+  /* ── Chart Cards ── */
+  .chart-card {
+    background:var(--card); border:1px solid var(--border);
+    border-radius:14px; padding:20px; height:100%;
+    box-shadow:0 2px 12px rgba(124,58,237,.08);
+    transition:border-color .2s;
+    animation:fadeUp .42s ease both;
+  }
+  .chart-card:hover { border-color:rgba(167,139,250,.2); }
+  .chart-title { font-size:15px; font-weight:600; color:var(--text); margin-bottom:4px; display:flex; align-items:center; gap:8px; font-family:'Sora',sans-serif; }
+  .chart-title i { color:var(--sky); }
+  .chart-sub  { font-size:12px; color:var(--muted); margin-bottom:16px; }
+  .live-badge { display:inline-flex; align-items:center; gap:5px; font-size:11px; color:var(--sky); background:rgba(167,139,250,.12); padding:3px 10px; border-radius:12px; border:1px solid rgba(167,139,250,.2); }
+  .live-dot   { width:7px; height:7px; background:var(--sky); border-radius:50%; animation:pulseDot 1.5s infinite; }
+  @keyframes pulseDot { 0%{opacity:1;transform:scale(1);} 50%{opacity:.35;transform:scale(1.5);} 100%{opacity:1;transform:scale(1);} }
+  .count-up { transition:none; }
+
+  /* ── Overview bar ── */
+  .overview-bar {
+    display:flex; align-items:center; gap:10px;
+    background:linear-gradient(135deg,rgba(124,58,237,.18),rgba(167,139,250,.07));
+    border:1px solid rgba(167,139,250,.18);
+    color:#fff; border-radius:14px; padding:14px 20px; margin-bottom:20px;
+  }
+  .overview-bar .ai-chip {
+    display:inline-flex; align-items:center; gap:6px;
+    background:rgba(167,139,250,.15); color:var(--sky);
+    font-size:11px; font-weight:600; letter-spacing:.5px;
+    padding:4px 10px; border-radius:20px; border:1px solid rgba(167,139,250,.25);
+  }
+  .overview-bar h6  { margin:0; font-size:14px; font-weight:600; }
+  .overview-bar small { color:rgba(255,255,255,.55); font-size:12px; }
+</style>
+
+<!-- Overview header bar (this page is an overview, not a pipeline step) -->
+<div class="overview-bar">
+  <i class="bi bi-grid-1x2" style="font-size:20px; color:#a78bfa;"></i>
+  <div>
+    <h6>System Overview</h6>
+    <small>Live snapshot of your lead pipeline</small>
+  </div>
+  <span class="ai-chip ms-auto"><i class="bi bi-stars"></i> AI Lead Intelligence</span>
+</div>
+
+<!-- Live badge -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <span class="live-badge"><span class="live-dot"></span> Live Data — auto-refreshes every 10s</span>
+  <button class="btn btn-sm btn-outline-secondary" onclick="loadStats()"><i class="bi bi-arrow-repeat me-1"></i>Refresh Now</button>
+</div>
+
+<!-- KPI Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-md-3">
+    <div class="kpi-card blue">
+      <div class="kpi-icon blue"><i class="bi bi-people-fill"></i></div>
+      <div class="kpi-value count-up" id="kpiTotal" data-target="0">0</div>
+      <div class="kpi-label">Total Leads</div>
+      <div class="kpi-trend up"><i class="bi bi-database-check"></i> In database</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="kpi-card green">
+      <div class="kpi-icon green"><i class="bi bi-envelope-at-fill"></i></div>
+      <div class="kpi-value count-up" id="kpiEmail" data-target="0">0</div>
+      <div class="kpi-label">Leads with Email</div>
+      <div class="kpi-trend up"><i class="bi bi-check-circle"></i> Contactable</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="kpi-card orange">
+      <div class="kpi-icon orange"><i class="bi bi-search"></i></div>
+      <div class="kpi-value count-up" id="kpiSearches" data-target="0">0</div>
+      <div class="kpi-label">Searches Run</div>
+      <div class="kpi-trend up"><i class="bi bi-activity"></i> Queries</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="kpi-card purple">
+      <div class="kpi-icon purple"><i class="bi bi-star-fill"></i></div>
+      <div class="kpi-value count-up" id="kpiScore" data-target="0">0</div>
+      <div class="kpi-label">Average Score</div>
+      <div class="kpi-trend up"><i class="bi bi-graph-up-arrow"></i> Quality</div>
+    </div>
+  </div>
+</div>
+
+<!-- Charts row 1 -->
+<div class="row g-3 mb-4">
+  <div class="col-md-8">
+    <div class="chart-card">
+      <div class="chart-title"><i class="bi bi-bar-chart-line"></i> Leads by Platform</div>
+      <div class="chart-sub">Distribution of leads across data sources</div>
+      <canvas id="platformChart" height="100"></canvas>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="chart-card">
+      <div class="chart-title"><i class="bi bi-pie-chart"></i> Quality Tiers</div>
+      <div class="chart-sub">Lead score distribution</div>
+      <canvas id="scoreChart" height="200"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- Charts row 2 -->
+<div class="row g-3 mb-4">
+  <div class="col-md-7">
+    <div class="chart-card">
+      <div class="chart-title"><i class="bi bi-graph-up"></i> Leads Collected Over Time</div>
+      <div class="chart-sub">Daily lead acquisition trend</div>
+      <canvas id="dailyChart" height="90"></canvas>
+    </div>
+  </div>
+  <div class="col-md-5">
+    <div class="chart-card">
+      <div class="chart-title"><i class="bi bi-kanban"></i> Lead Status Pipeline</div>
+      <div class="chart-sub">Where leads are in your funnel</div>
+      <canvas id="statusChart" height="150"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- Quick actions -->
+<div class="row g-3">
+  <div class="col-md-12">
+    <div class="chart-card">
+      <div class="chart-title"><i class="bi bi-lightning-charge"></i> Quick Actions</div>
+      <div class="chart-sub">Jump to any module</div>
+      <div class="d-flex gap-2 flex-wrap mt-2">
+        <a href="/search/" class="btn btn-accent"><i class="bi bi-search me-1"></i> New Search</a>
+        <a href="/fetch/" class="btn btn-outline-secondary"><i class="bi bi-cloud-download me-1"></i> Fetch URL</a>
+        <a href="/classify/" class="btn btn-outline-secondary"><i class="bi bi-cpu me-1"></i> AI Classify</a>
+        <a href="/leads/" class="btn btn-outline-secondary"><i class="bi bi-table me-1"></i> View Leads</a>
+        <a href="/email/" class="btn btn-outline-secondary"><i class="bi bi-envelope me-1"></i> Send Email</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+let platformChart, scoreChart, dailyChart, statusChart;
+
+function animateCount(el, target) {
+  const start = parseInt(el.textContent) || 0;
+  const duration = 800;
+  const startTime = performance.now();
+  function tick(now) {
+    const progress = Math.min((now - startTime) / duration, 1);
+    const val = Math.floor(start + (target - start) * progress);
+    el.textContent = el.id === 'kpiScore' ? val + '%' : val;
+    if (progress < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+async function loadStats() {
+  try {
+    const r = await fetch('/api/stats');
+    const d = await r.json();
+
+    // KPI cards
+    animateCount(document.getElementById('kpiTotal'),    d.total);
+    animateCount(document.getElementById('kpiEmail'),    d.with_email);
+    animateCount(document.getElementById('kpiSearches'), d.searches);
+    animateCount(document.getElementById('kpiScore'),    Math.round(d.avg_score));
+
+    renderPlatformChart(d.platforms);
+    renderScoreChart(d.score_dist);
+    renderDailyChart(d.daily);
+    renderStatusChart(d.status);
+  } catch(e) { console.error(e); }
+}
+
+const _darkGrid  = 'rgba(255,255,255,.06)';
+const _tickColor = '#475569';
+const _legendCfg = { color:'#94a3b8', font:{size:11}, padding:12, usePointStyle:true };
+
+function renderPlatformChart(platforms) {
+  const labels = Object.keys(platforms);
+  const data   = Object.values(platforms);
+  const colors = ['#7c3aed','#06b6d4','#a78bfa','#0369a1','#60a5fa','#f59e0b','#10b981'];
+  if (platformChart) platformChart.destroy();
+  platformChart = new Chart(document.getElementById('platformChart'), {
+    type:'bar',
+    data:{ labels, datasets:[{ label:'Leads', data, backgroundColor:colors, borderRadius:8, barThickness:38 }] },
+    options:{ responsive:true, plugins:{legend:{display:false}},
+      scales:{ y:{beginAtZero:true, ticks:{stepSize:1, color:_tickColor}, grid:{color:_darkGrid}}, x:{grid:{display:false}, ticks:{color:_tickColor}} } }
+  });
+}
+
+function renderScoreChart(dist) {
+  if (scoreChart) scoreChart.destroy();
+  scoreChart = new Chart(document.getElementById('scoreChart'), {
+    type:'doughnut',
+    data:{
+      labels:['High (75+)','Medium (50-74)','Low (<50)'],
+      datasets:[{ data:[dist.high,dist.medium,dist.low], backgroundColor:['#7c3aed','#f59e0b','rgba(255,255,255,.08)'], borderWidth:0 }]
+    },
+    options:{ responsive:true, cutout:'68%',
+      plugins:{ legend:{ position:'bottom', labels:_legendCfg } } }
+  });
+}
+
+function renderDailyChart(daily) {
+  const labels = daily.map(d => d.day ? d.day.substring(5) : '—');
+  const data   = daily.map(d => d.count);
+  if (dailyChart) dailyChart.destroy();
+  dailyChart = new Chart(document.getElementById('dailyChart'), {
+    type:'line',
+    data:{ labels, datasets:[{ label:'Leads', data,
+      borderColor:'#a78bfa', backgroundColor:'rgba(167,139,250,.08)',
+      fill:true, tension:.4, pointBackgroundColor:'#a78bfa', pointRadius:5, pointHoverRadius:7 }] },
+    options:{ responsive:true, plugins:{legend:{display:false}},
+      scales:{ y:{beginAtZero:true, ticks:{stepSize:1, color:_tickColor}, grid:{color:_darkGrid}}, x:{grid:{display:false}, ticks:{color:_tickColor}} } }
+  });
+}
+
+function renderStatusChart(status) {
+  if (statusChart) statusChart.destroy();
+  statusChart = new Chart(document.getElementById('statusChart'), {
+    type:'polarArea',
+    data:{
+      labels:['New','Contacted','Qualified'],
+      datasets:[{ data:[status.new,status.contacted,status.qualified],
+        backgroundColor:['rgba(124,58,237,.7)','rgba(6,182,212,.7)','rgba(16,185,129,.7)'], borderWidth:0 }]
+    },
+    options:{ responsive:true,
+      plugins:{ legend:{ position:'bottom', labels:_legendCfg } } }
+  });
+}
+
+// Initial load + auto-refresh every 10s
+loadStats();
+setInterval(loadStats, 10000);
+</script>
+{% endblock %}

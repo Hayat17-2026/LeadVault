@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% block title %}User Management — LeadVault{% endblock %}
+{% block page_title %}User Management{% endblock %}
+{% block page_sub %}Add and manage system users (Admin only){% endblock %}
+
+{% block content %}
+<style>
+  .overview-bar {
+    display:flex; align-items:center; gap:10px;
+    background:linear-gradient(135deg,rgba(124,58,237,.18),rgba(167,139,250,.07));
+    border:1px solid rgba(167,139,250,.18);
+    color:#fff; border-radius:14px; padding:14px 20px; margin-bottom:20px;
+  }
+  .overview-bar .ai-chip {
+    display:inline-flex; align-items:center; gap:6px;
+    background:rgba(167,139,250,.15); color:#a78bfa;
+    font-size:11px; font-weight:600; letter-spacing:.5px;
+    padding:4px 10px; border-radius:20px; border:1px solid rgba(167,139,250,.25);
+  }
+  .overview-bar h6 { margin:0; font-size:14px; font-weight:600; }
+  .overview-bar small { color:rgba(255,255,255,.55); font-size:12px; }
+</style>
+
+<!-- Overview header bar (admin area, not a pipeline step) -->
+<div class="overview-bar">
+  <i class="bi bi-person-gear" style="font-size:20px; color:#a78bfa;"></i>
+  <div>
+    <h6>Admin Control</h6>
+    <small>Manage who can access the system</small>
+  </div>
+  <span class="ai-chip ms-auto"><i class="bi bi-stars"></i> AI Lead Intelligence</span>
+</div>
+
+<div class="row g-3">
+  <!-- Add user form -->
+  <div class="col-md-5">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-person-plus me-2"></i>Add New User</div>
+      <div class="card-body">
+        <div id="addMsg" class="mb-2" style="display:none;"></div>
+
+        <div class="mb-2">
+          <label class="form-label" style="font-size:13px;font-weight:600;">Username</label>
+          <input class="form-control form-control-sm" id="newUsername"
+            placeholder="e.g. sales1" autocomplete="username"/>
+        </div>
+        <div class="mb-2">
+          <label class="form-label" style="font-size:13px;font-weight:600;">Email</label>
+          <input class="form-control form-control-sm" id="newEmail" type="email"
+            placeholder="user@email.com" autocomplete="email"/>
+        </div>
+        <div class="mb-2">
+          <label class="form-label" style="font-size:13px;font-weight:600;">Password</label>
+          <input class="form-control form-control-sm" id="newPassword" type="password"
+            placeholder="8+ chars, number, symbol" autocomplete="new-password"/>
+          <small style="font-size:11px;color:#94a3b8;">Must be 8+ characters with a number and a symbol (#@!$%)</small>
+        </div>
+        <div class="mb-2">
+          <label class="form-label" style="font-size:13px;font-weight:600;">Confirm Password</label>
+          <input class="form-control form-control-sm" id="confirmPassword" type="password"
+            placeholder="Re-enter password" autocomplete="new-password"/>
+        </div>
+
+        <!-- CAPTCHA -->
+        <div class="mb-3 p-3" style="background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.25);border-radius:8px;">
+          <label class="form-label" style="font-size:13px;font-weight:600;">
+            <i class="bi bi-shield-check me-1"></i>Verify you're not a robot
+          </label>
+          <div class="d-flex align-items-center gap-2">
+            <span style="font-size:20px;font-weight:700;letter-spacing:2px;background:#0a1628;color:#a78bfa;padding:6px 16px;border-radius:6px;font-family:monospace;" id="captchaQ">…</span>
+            <span style="font-size:18px;">=</span>
+            <input class="form-control form-control-sm" id="captchaAnswer" placeholder="?" style="width:80px;"/>
+            <button class="btn btn-sm btn-outline-secondary" onclick="loadCaptcha()" title="New question"><i class="bi bi-arrow-repeat"></i></button>
+          </div>
+        </div>
+
+        <button class="btn btn-accent w-100" onclick="addUser()">
+          <i class="bi bi-check-circle me-1"></i> Create User
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Users list -->
+  <div class="col-md-7">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-people me-2"></i>System Users</span>
+        <button class="btn btn-sm btn-outline-secondary" onclick="loadUsers()"><i class="bi bi-arrow-repeat me-1"></i>Refresh</button>
+      </div>
+      <div class="card-body p-0">
+        <div id="usersList"><div class="text-center py-4 text-muted">Loading…</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let captchaToken = '';
+
+async function loadCaptcha() {
+  const r = await fetch('/captcha');
+  const d = await r.json();
+  document.getElementById('captchaQ').textContent = d.question;
+  captchaToken = d.token;
+  document.getElementById('captchaAnswer').value = '';
+}
+
+async function loadUsers() {
+  const r = await fetch('/users/list');
+  const d = await r.json();
+  const box = document.getElementById('usersList');
+  if (d.status !== 'ok') {
+    box.innerHTML = '<div class="text-center py-4 text-danger">Admin access required</div>';
+    return;
+  }
+  box.innerHTML = `<table class="table table-hover mb-0" style="font-size:13px;">
+    <thead class="table-light"><tr><th>Username</th><th>Email</th><th>Role</th><th>Action</th></tr></thead>
+    <tbody>${d.users.map(u => `
+      <tr>
+        <td class="fw-semibold"><i class="bi bi-person-circle me-1"></i>${u.username}</td>
+        <td style="color:#718096;">${u.email || '—'}</td>
+        <td><span class="badge ${u.username==='admin'?'bg-primary':'bg-secondary'}">${u.username==='admin'?'admin':u.role}</span></td>
+        <td>${u.username==='admin' ? '<span class="text-muted" style="font-size:11px;">protected</span>' :
+          `<button class="btn btn-sm btn-outline-danger" onclick="deleteUser('${u.username}')"><i class="bi bi-trash"></i></button>`}</td>
+      </tr>`).join('')}</tbody></table>`;
+}
+
+async function addUser() {
+  const msg = document.getElementById('addMsg');
+  const data = {
+    username: document.getElementById('newUsername').value,
+    email:    document.getElementById('newEmail').value,
+    password: document.getElementById('newPassword').value,
+    confirm:  document.getElementById('confirmPassword').value,
+    captcha_token:  captchaToken,
+    captcha_answer: document.getElementById('captchaAnswer').value
+  };
+
+  const r = await fetch('/users/add', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(data)
+  });
+  const d = await r.json();
+  msg.style.display = 'block';
+  if (d.status === 'ok') {
+    msg.innerHTML = '<div class="alert alert-success py-2 mb-0" style="font-size:13px;"><i class="bi bi-check-circle me-1"></i>'+d.message+'</div>';
+    // clear form
+    ['newUsername','newEmail','newPassword','confirmPassword','captchaAnswer'].forEach(id => document.getElementById(id).value='');
+    loadUsers();
+    loadCaptcha();
+  } else {
+    msg.innerHTML = '<div class="alert alert-danger py-2 mb-0" style="font-size:13px;"><i class="bi bi-x-circle me-1"></i>'+d.message+'</div>';
+    loadCaptcha();
+  }
+}
+
+async function deleteUser(username) {
+  if (!confirm('Delete user "'+username+'"?')) return;
+  const r = await fetch('/users/delete', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ username })
+  });
+  const d = await r.json();
+  if (d.status === 'ok') loadUsers();
+  else alert(d.message);
+}
+
+loadCaptcha();
+loadUsers();
+</script>
+{% endblock %}

@@ -1,0 +1,53 @@
+═══════════════════════════════════════════════════════════
+  LeadVault — AI Lead Intelligence
+  دليل التشغيل
+═══════════════════════════════════════════════════════════
+
+خطوات التشغيل:
+
+1) افتحي الـ folder بـ VS Code
+
+2) بالـ Terminal، الأوامر وحدة وحدة:
+
+   cd lead_system
+   python -m venv venv
+   Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
+   .\venv\Scripts\Activate.ps1
+   pip install flask requests beautifulsoup4 anthropic selenium webdriver-manager google-search-results reportlab
+
+3) ⚠️ حطي المفاتيح:
+   - services/search_service.py (سطر 7): الـ SerpAPI key
+   - services/email_service.py (سطر 9,10): إيميلك + App Password
+
+4) شغّلي:
+   python app.py
+
+5) افتحي: http://127.0.0.1:5000
+
+═══════════════════════════════════════════════════════════
+  بيانات الدخول الجديدة (passwords قوية):
+  Administrator → admin / Admin@123
+  Staff         → hala  / Hala@2025
+═══════════════════════════════════════════════════════════
+  أسئلة الأمان (Forgot Password):
+  admin → favorite color → blue
+  hala  → city born      → beirut
+═══════════════════════════════════════════════════════════
+
+  المميزات:
+  • Login احترافي + Image CAPTCHA (اختاري الصور)
+  • Dashboard + رسوم بيانية حية
+  • Search (Google API) + deep enrich
+  • Web Fetch + Selenium
+  • AI Classify (تصنيف وتقييم)
+  • Leads Database: Add/Edit/Delete/PDF/CSV/WhatsApp/Duplicates
+  • Email Outreach + Bulk Email
+  • Activity Log
+  • User Management (admin يضيف موظفين)
+  • AI Chatbot 🤖 (زر أزرق تحت يمين — اسأليه أي شي!)
+═══════════════════════════════════════════════════════════
+
+  Frontend vs Backend:
+  • Frontend = templates/*.html (اللي بتشوفيه)
+  • Backend  = routes/*.py + services/*.py (المنطق)
+═══════════════════════════════════════════════════════════

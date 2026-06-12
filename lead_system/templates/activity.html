@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Activity Log — LeadVault{% endblock %}
+{% block page_title %}Activity Log{% endblock %}
+{% block page_sub %}Audit trail of all system actions{% endblock %}
+
+{% block content %}
+<style>
+  .overview-bar {
+    display:flex; align-items:center; gap:10px;
+    background:linear-gradient(135deg,rgba(124,58,237,.18),rgba(167,139,250,.07));
+    border:1px solid rgba(167,139,250,.18);
+    color:#fff; border-radius:14px; padding:14px 20px; margin-bottom:20px;
+  }
+  .overview-bar .ai-chip {
+    display:inline-flex; align-items:center; gap:6px;
+    background:rgba(167,139,250,.15); color:#a78bfa;
+    font-size:11px; font-weight:600; letter-spacing:.5px;
+    padding:4px 10px; border-radius:20px; border:1px solid rgba(167,139,250,.25);
+  }
+  .overview-bar h6 { margin:0; font-size:14px; font-weight:600; }
+  .overview-bar small { color:rgba(255,255,255,.55); font-size:12px; }
+</style>
+
+<!-- Overview header bar (audit log, not a pipeline step) -->
+<div class="overview-bar">
+  <i class="bi bi-clock-history" style="font-size:20px; color:#a78bfa;"></i>
+  <div>
+    <h6>Audit Trail</h6>
+    <small>Every action taken in the system</small>
+  </div>
+  <span class="ai-chip ms-auto"><i class="bi bi-stars"></i> AI Lead Intelligence</span>
+</div>
+
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-clock-history me-2"></i>Recent Activity</span>
+    <button class="btn btn-sm btn-outline-secondary" onclick="loadActivity()"><i class="bi bi-arrow-repeat me-1"></i>Refresh</button>
+  </div>
+  <div class="card-body p-0">
+    <div id="activityList">
+      <div class="text-center py-4 text-muted">Loading…</div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const actionIcons = {
+  'search': 'bi-search', 'fetch': 'bi-cloud-download', 'classify': 'bi-cpu',
+  'add_lead': 'bi-person-plus', 'delete_lead': 'bi-trash', 'email': 'bi-envelope',
+  'bulk_email': 'bi-broadcast', 'login': 'bi-box-arrow-in-right',
+  'export': 'bi-download', 'duplicate': 'bi-files'
+};
+const actionColors = {
+  'search':'#7c3aed','fetch':'#0891b2','classify':'#0ea5e9','add_lead':'#16a34a',
+  'delete_lead':'#ef4444','email':'#3b82f6','bulk_email':'#6d28d9','login':'#a78bfa',
+  'export':'#0891b2','duplicate':'#64748b'
+};
+
+async function loadActivity() {
+  const r = await fetch('/activity/all');
+  const logs = await r.json();
+  const box = document.getElementById('activityList');
+  if (!logs.length) {
+    box.innerHTML = '<div class="text-center py-4 text-muted"><i class="bi bi-inbox" style="font-size:32px;opacity:.3;"></i><p class="mt-2">No activity yet</p></div>';
+    return;
+  }
+  box.innerHTML = logs.map(l => {
+    const icon = actionIcons[l.action] || 'bi-dot';
+    const color = actionColors[l.action] || '#718096';
+    return `<div class="d-flex align-items-center gap-3 px-3 py-2" style="border-bottom:1px solid #f0f0f0;">
+      <div style="width:34px;height:34px;border-radius:8px;background:${color}22;color:${color};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <i class="bi ${icon}"></i>
+      </div>
+      <div class="flex-grow-1">
+        <div style="font-size:13px;font-weight:600;color:#1a202c;">${l.action.replace('_',' ').toUpperCase()}</div>
+        <div style="font-size:12px;color:#718096;">${l.details || ''}</div>
+      </div>
+      <div class="text-end" style="font-size:11px;color:#a0aec0;">
+        <div><i class="bi bi-person me-1"></i>${l.username}</div>
+        <div>${l.timestamp}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+loadActivity();
+</script>
+{% endblock %}

@@ -1,0 +1,720 @@
+{% extends "base.html" %}
+{% block title %}Search Module — LeadVault{% endblock %}
+{% block page_title %}Search &amp; Research Module{% endblock %}
+{% block page_sub %}Step 1 — Discover public leads by keyword, platform, and region{% endblock %}
+
+{% block content %}
+<!-- ── PIPELINE STEP BAR (full 5 steps) ── -->
+<div class="pipeline mb-4">
+  <div class="pipeline-step active"><span class="ps-num">01</span><i class="bi bi-search"></i> Search</div>
+  <div class="pipeline-step"><span class="ps-num">02</span><i class="bi bi-cloud-download"></i> Web Fetch</div>
+  <div class="pipeline-step"><span class="ps-num">03</span><i class="bi bi-cpu"></i> AI Classify</div>
+  <div class="pipeline-step"><span class="ps-num">04</span><i class="bi bi-people"></i> Leads DB</div>
+  <div class="pipeline-step"><span class="ps-num">05</span><i class="bi bi-envelope-paper"></i> Email</div>
+</div>
+
+<div class="row g-3">
+  <!-- Config panel -->
+  <div class="col-md-4">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-sliders me-2"></i>Search Configuration</div>
+      <div class="card-body">
+
+        <label class="form-label fw-semibold" style="font-size:13px;">Keywords</label>
+        <div class="d-flex gap-2 mb-2">
+          <input type="text" id="kwInput" class="form-control form-control-sm"
+            list="kwSuggestions" placeholder='e.g. "phone dealer"' autocomplete="off"/>
+          <datalist id="kwSuggestions"></datalist>
+          <button class="btn btn-sm btn-accent" onclick="addTag()">
+            <i class="bi bi-plus"></i>
+          </button>
+        </div>
+        <div id="tagBox" class="mb-3" style="min-height:32px;"></div>
+
+        <label class="form-label fw-semibold" style="font-size:13px;">Platform</label>
+        <select class="form-select form-select-sm mb-3" id="platform">
+          <option value="all">🌐 All Platforms (maximum reach)</option>
+          <option value="web">Web &amp; General</option>
+          <option value="social">📱 Social Media (all)</option>
+          <option value="linkedin">LinkedIn</option>
+          <option value="facebook">Facebook</option>
+          <option value="instagram">Instagram</option>
+          <option value="twitter">Twitter / X</option>
+          <option value="marketplace">🛒 Marketplaces (OLX, Amazon, eBay...)</option>
+          <option value="maps">🗺️ Google Maps (Business Listings)</option>
+          <option value="directories">📒 Web Directories (Yellow Pages, Yelp, Maps)</option>
+        </select>
+
+        <label class="form-label fw-semibold" style="font-size:13px;">Region</label>
+        <select class="form-select form-select-sm mb-4" id="region">
+          <option value="lebanon">Lebanon</option>
+          <option value="mena">MENA</option>
+          <option value="gcc">GCC</option>
+          <option value="global">Global</option>
+          <option value="europe">Europe</option>
+        </select>
+
+        <button class="btn btn-accent w-100" id="runBtn" onclick="runSearch()">
+          <i class="bi bi-play-fill me-1"></i> Run Search
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Results panel -->
+  <div class="col-md-8">
+    <!-- Log -->
+    <div id="logWrap" style="display:none;" class="mb-3">
+      <div class="log-box" id="logBox"></div>
+    </div>
+
+    <!-- Stats -->
+    <div class="row g-2 mb-3" id="statsRow" style="display:none;">
+      <div class="col-4">
+        <div class="stat-card text-center py-2">
+          <div class="label">Found</div>
+          <div class="value" id="statFound" style="font-size:22px;">0</div>
+        </div>
+      </div>
+      <div class="col-4">
+        <div class="stat-card text-center py-2">
+          <div class="label">With email</div>
+          <div class="value accent" id="statEmail" style="font-size:22px; color:var(--accent);">0</div>
+        </div>
+      </div>
+      <div class="col-4">
+        <div class="stat-card text-center py-2">
+          <div class="label">Queued</div>
+          <div class="value" id="statQueued" style="font-size:22px; color:#7c3aed;">0</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Export bar (shows when there are results) -->
+    <div id="exportBar" style="display:none;" class="mb-2 d-flex justify-content-end gap-2">
+      <button class="btn btn-sm btn-accent" id="saveAllBtn" onclick="saveAllToDb()">
+        <i class="bi bi-database-add me-1"></i>Save All to DB
+      </button>
+      <div class="dropdown">
+        <button class="btn btn-sm btn-outline-success dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+          <i class="bi bi-file-earmark-excel me-1"></i>Export to Excel
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end shadow" style="min-width:200px; border:1px solid rgba(124,58,237,.15); border-radius:10px; padding:6px;">
+          <li><h6 class="dropdown-header" style="font-size:10px; color:#7c3aed; letter-spacing:.8px; text-transform:uppercase;">Choose Columns</h6></li>
+          <li>
+            <a class="dropdown-item rounded-2" style="font-size:13px; cursor:pointer;" onclick="exportExcel('all')">
+              <i class="bi bi-table me-2" style="color:#7c3aed;"></i>All Fields
+            </a>
+          </li>
+          <li><hr class="dropdown-divider my-1" style="border-color:rgba(124,58,237,.1);"></li>
+          <li>
+            <a class="dropdown-item rounded-2" style="font-size:13px; cursor:pointer;" onclick="exportExcel('name')">
+              <i class="bi bi-person me-2" style="color:#7c3aed;"></i>Names Only
+            </a>
+          </li>
+          <li>
+            <a class="dropdown-item rounded-2" style="font-size:13px; cursor:pointer;" onclick="exportExcel('email')">
+              <i class="bi bi-envelope me-2" style="color:#7c3aed;"></i>Emails Only
+            </a>
+          </li>
+          <li>
+            <a class="dropdown-item rounded-2" style="font-size:13px; cursor:pointer;" onclick="exportExcel('phone')">
+              <i class="bi bi-telephone me-2" style="color:#7c3aed;"></i>Phones Only
+            </a>
+          </li>
+          <li><hr class="dropdown-divider my-1" style="border-color:rgba(124,58,237,.1);"></li>
+          <li>
+            <a class="dropdown-item rounded-2" style="font-size:13px; cursor:pointer;" onclick="exportExcel('name_email')">
+              <i class="bi bi-person-lines-fill me-2" style="color:#7c3aed;"></i>Name + Email
+            </a>
+          </li>
+          <li>
+            <a class="dropdown-item rounded-2" style="font-size:13px; cursor:pointer;" onclick="exportExcel('name_phone')">
+              <i class="bi bi-person-badge me-2" style="color:#7c3aed;"></i>Name + Phone
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Filter bar (shown after results load) -->
+    <div id="filterBar" style="display:none;" class="mb-3">
+      <div style="display:flex; align-items:center; gap:10px; background:#fff; border:1.5px solid rgba(124,58,237,.2); border-radius:10px; padding:9px 14px; box-shadow:0 2px 10px rgba(124,58,237,.07);">
+        <i class="bi bi-search" style="color:#7c3aed; font-size:14px; flex-shrink:0;"></i>
+        <input type="text" id="filterInput"
+          placeholder="Filter results by name, email, phone, URL…"
+          oninput="filterResults(this.value)"
+          style="border:none; outline:none; flex:1; font-size:13px; color:#111827; background:transparent; font-family:'Inter',sans-serif;"/>
+        <span id="filterCount" style="font-size:11px; font-weight:600; color:#7c3aed; background:rgba(124,58,237,.1); padding:3px 10px; border-radius:12px; white-space:nowrap; flex-shrink:0;"></span>
+        <button id="filterClearBtn" onclick="clearFilter()" style="display:none; border:none; background:rgba(124,58,237,.08); color:#7c3aed; cursor:pointer; font-size:14px; width:26px; height:26px; border-radius:50%; padding:0; line-height:1; flex-shrink:0;" title="Clear filter">×</button>
+      </div>
+    </div>
+
+    <!-- Result cards -->
+    <div id="resultsList">
+      <div class="text-center py-5 text-muted">
+        <i class="bi bi-search" style="font-size:40px; opacity:.3;"></i>
+        <p class="mt-3">Configure your search and click <strong>Run Search</strong></p>
+      </div>
+    </div>
+
+    <!-- Next step button -->
+    <div id="nextStep" style="display:none;" class="mt-3">
+      <a href="/fetch/" class="btn btn-outline-primary w-100">
+        <i class="bi bi-arrow-right me-1"></i> Continue to Step 2: Web Fetch &amp; Scraping
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ── LEAD PROFILE MODAL ── -->
+<div class="modal fade" id="profileModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content" style="border:1px solid rgba(124,58,237,.22); border-radius:18px; overflow:hidden;">
+
+      <div class="modal-header" style="background:linear-gradient(135deg,#7c3aed,#5b21b6); padding:18px 24px;">
+        <div>
+          <h5 class="modal-title text-white mb-0" style="font-family:'Sora',sans-serif;">
+            <i class="bi bi-person-badge me-2"></i><span id="modalName">Lead Profile</span>
+          </h5>
+          <small id="modalPlatformLabel" style="color:rgba(255,255,255,.7); font-size:12px;"></small>
+        </div>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body p-4" style="background:var(--card);">
+        <div class="row g-4">
+
+          <!-- Left: contact info -->
+          <div class="col-md-8">
+            <div class="mb-3">
+              <div id="modalEmail" class="mb-2" style="font-size:14px;"></div>
+              <div id="modalPhone" class="mb-2" style="font-size:14px;"></div>
+              <div id="modalUrl"   class="mb-2" style="font-size:13px;"></div>
+            </div>
+            <div id="modalInterests" class="mb-3"></div>
+            <p id="modalSnippet" class="mb-0" style="font-size:12px; color:var(--muted); line-height:1.6;"></p>
+          </div>
+
+          <!-- Right: score -->
+          <div class="col-md-4 text-center">
+            <div id="modalScoreBadge" class="mb-1"></div>
+            <div style="font-size:11px; color:var(--muted); margin-bottom:12px;">Lead Score</div>
+            <div id="modalBreakdown" style="font-size:12px; text-align:left; color:var(--text2);"></div>
+          </div>
+        </div>
+
+        <!-- AI Summary -->
+        <div class="mt-4 p-3" style="background:rgba(124,58,237,.05); border:1px solid rgba(124,58,237,.14); border-radius:12px;">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <span style="font-size:13px; font-weight:600; color:#7c3aed;"><i class="bi bi-stars me-1"></i>AI Lead Summary</span>
+            <button class="btn btn-sm btn-accent" id="modalSummaryBtn" onclick="getModalSummary()" style="font-size:12px; padding:4px 12px;">
+              Generate
+            </button>
+          </div>
+          <div id="modalSummaryText" style="font-size:13px; color:var(--text2); min-height:36px; line-height:1.6;"></div>
+        </div>
+
+        <!-- Notes -->
+        <div class="mt-3">
+          <label style="font-size:12px; font-weight:600; color:var(--text2); letter-spacing:.3px;">NOTES</label>
+          <textarea id="modalNotes" class="form-control form-control-sm mt-1" rows="2"
+            placeholder="Add notes about this lead…"
+            oninput="saveModalNote()"
+            style="font-size:13px; resize:none; border-color:rgba(124,58,237,.2);"></textarea>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="background:var(--card2); border-top:1px solid rgba(124,58,237,.12); padding:12px 20px;">
+        <button class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+        <button class="btn btn-sm btn-accent" id="modalSaveBtn" onclick="queueFromModal()">
+          <i class="bi bi-database-add me-1"></i>Save to DB
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ── STEP NAVIGATION (first step: Next only) ── -->
+<div class="step-nav">
+  <span class="step-nav-label">Step 1 of 5 · Search &amp; Research</span>
+  <a href="/fetch/" class="btn-step btn-step-next">
+    Next: Web Fetch <i class="bi bi-arrow-right"></i>
+  </a>
+</div>
+
+<style>
+  .step-nav {
+    display:flex; align-items:center; justify-content:space-between;
+    margin-top:28px; padding-top:20px; border-top:1px solid rgba(124,58,237,.12);
+  }
+  .step-nav-label { font-size:12px; color:#94a3b8; font-weight:500; }
+  .btn-step {
+    display:inline-flex; align-items:center; gap:8px;
+    padding:10px 20px; border-radius:10px; font-size:14px; font-weight:600;
+    text-decoration:none; transition:all .2s;
+  }
+  .btn-step-back {
+    background:rgba(255,255,255,.05); color:#a78bfa; border:1.5px solid rgba(124,58,237,.22);
+  }
+  .btn-step-back:hover { border-color:#7c3aed; background:rgba(124,58,237,.1); color:#a78bfa; }
+  .btn-step-next {
+    background:linear-gradient(135deg,#7c3aed,#6d28d9); color:#fff;
+    border:none; box-shadow:0 4px 14px rgba(124,58,237,0.35);
+  }
+  .btn-step-next:hover { transform:translateY(-1px); box-shadow:0 6px 18px rgba(124,58,237,0.5); color:#fff; }
+  @media (max-width:600px){ .step-nav-label{ display:none; } }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let tags = [];
+let queuedCount = 0;
+
+function renderTags() {
+  document.getElementById('tagBox').innerHTML = tags.map((t,i) =>
+    `<span class="tag-pill me-1 mb-1">${t}
+      <span style="cursor:pointer;margin-left:4px;" onclick="removeTag(${i})">×</span>
+    </span>`
+  ).join('');
+}
+
+// ── Keyword autocomplete (localStorage history) ──
+function _saveKw(kw) {
+  let saved = JSON.parse(localStorage.getItem('lv_kw') || '[]');
+  saved = [kw, ...saved.filter(k => k !== kw)].slice(0, 30);
+  localStorage.setItem('lv_kw', JSON.stringify(saved));
+  _renderKwDL();
+}
+function _renderKwDL() {
+  const saved = JSON.parse(localStorage.getItem('lv_kw') || '[]');
+  document.getElementById('kwSuggestions').innerHTML = saved.map(k => `<option value="${k}">`).join('');
+}
+_renderKwDL();
+
+function addTag() {
+  const inp = document.getElementById('kwInput');
+  const v = inp.value.trim();
+  if (v && !tags.includes(v)) { tags.push(v); renderTags(); _saveKw(v); }
+  inp.value = '';
+}
+
+function removeTag(i) { tags.splice(i,1); renderTags(); }
+
+document.getElementById('kwInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') addTag();
+});
+
+function log(msg, type='') {
+  const box = document.getElementById('logBox');
+  const cls = type === 'ok' ? 'log-ok' : type === 'err' ? 'log-err' : type === 'dim' ? 'log-dim' : '';
+  const t = new Date().toLocaleTimeString('en-US',{hour12:false});
+  box.innerHTML += `<span class="${cls}">[${t}] ${msg}</span>\n`;
+  box.scrollTop = box.scrollHeight;
+}
+
+function scoreClass(s) {
+  return s >= 80 ? 'score-high' : s >= 60 ? 'score-medium' : 'score-low';
+}
+
+function scoreTooltip(r) {
+  const parts = ['Base: 50'];
+  if (r.email) parts.push('+20 has email');
+  if (r.phone) parts.push('+10 has phone');
+  const text = ((r.name||'') + ' ' + (r.snippet||'')).toLowerCase();
+  const kmatches = tags.filter(kw => text.includes(kw.toLowerCase())).length;
+  if (kmatches) parts.push(`+${Math.min(kmatches*5,15)} keyword match`);
+  const bonus = {linkedin:5, yellowpages:3, yelp:3, maps:3}[r.platform];
+  if (bonus) parts.push(`+${bonus} platform bonus`);
+  return parts.join(' · ');
+}
+
+function initTooltips() {
+  document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
+    const existing = bootstrap.Tooltip.getInstance(el);
+    if (existing) existing.dispose();
+    new bootstrap.Tooltip(el, { trigger: 'hover', placement: 'left' });
+  });
+}
+
+let lastResults = [];
+
+function buildCard(r, i) {
+  return `
+    <div class="card mb-2" id="card_${i}">
+      <div class="card-body py-2 px-3 d-flex align-items-start gap-3">
+        <div style="font-size:22px; color:var(--muted);">
+          <i class="bi ${platformIcon(r.platform)}"></i>
+        </div>
+        <div class="flex-grow-1">
+          <div class="fw-semibold" style="font-size:14px;">
+            <span style="cursor:pointer; color:var(--accent);" onclick="openProfile(${i})" title="View full profile">${r.name}</span>
+            <i class="bi bi-box-arrow-up-right ms-1" style="font-size:10px; color:var(--muted); cursor:pointer;" onclick="openProfile(${i})"></i>
+          </div>
+          <div style="font-size:12px; color:var(--muted);" class="mb-1">${r.source_url}</div>
+          ${r.email ? `<span class="tag-pill green me-1"><i class="bi bi-envelope"></i> ${r.email}</span>` : ''}
+          ${r.phone ? `<span class="tag-pill me-1"><i class="bi bi-telephone"></i> ${r.phone}</span>` : ''}
+          <div class="mt-1" style="font-size:12px; color:var(--muted);">${r.interests || ''}</div>
+        </div>
+        <div class="text-end">
+          <span class="score-badge ${scoreClass(r.score)} d-block mb-1" data-bs-toggle="tooltip" data-bs-placement="left" title="${scoreTooltip(r)}" style="cursor:help;">${r.score}</span>
+          <button class="btn btn-sm btn-outline-success" id="qbtn_${i}" onclick="queueLead(${i}, ${JSON.stringify(r).replace(/"/g,'&quot;')})">
+            <i class="bi bi-plus"></i> Queue
+          </button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderResults(results) {
+  lastResults = results;
+  const hasResults = results.length > 0;
+  document.getElementById('exportBar').style.display  = hasResults ? 'block' : 'none';
+  document.getElementById('filterBar').style.display  = hasResults ? 'block' : 'none';
+  document.getElementById('filterInput').value = '';
+  document.getElementById('filterClearBtn').style.display = 'none';
+
+  const list = document.getElementById('resultsList');
+  if (!hasResults) {
+    list.innerHTML = '<div class="alert alert-warning">No results found. Try different keywords.</div>';
+    document.getElementById('filterCount').textContent = '0 / 0';
+    return;
+  }
+  document.getElementById('statFound').textContent  = results.length;
+  document.getElementById('statEmail').textContent  = results.filter(r => r.email).length;
+  document.getElementById('statsRow').style.display = 'flex';
+  document.getElementById('filterCount').textContent = results.length + ' results';
+  list.innerHTML = results.map((r, i) => buildCard(r, i)).join('');
+  initTooltips();
+}
+
+function filterResults(query) {
+  if (!lastResults.length) return;
+  const q = query.trim().toLowerCase();
+  document.getElementById('filterClearBtn').style.display = q ? 'inline-flex' : 'none';
+
+  const pairs = lastResults.map((r, i) => ({r, i}));
+  const filtered = q
+    ? pairs.filter(({r}) =>
+        (r.name        || '').toLowerCase().includes(q) ||
+        (r.email       || '').toLowerCase().includes(q) ||
+        (r.phone       || '').toLowerCase().includes(q) ||
+        (r.source_url  || '').toLowerCase().includes(q) ||
+        (r.interests   || '').toLowerCase().includes(q)
+      )
+    : pairs;
+
+  const countEl = document.getElementById('filterCount');
+  countEl.textContent = q
+    ? filtered.length + ' / ' + lastResults.length + ' results'
+    : lastResults.length + ' results';
+  countEl.style.background = (q && filtered.length === 0)
+    ? 'rgba(220,38,38,.1)' : 'rgba(124,58,237,.1)';
+  countEl.style.color = (q && filtered.length === 0) ? '#dc2626' : '#7c3aed';
+
+  const list = document.getElementById('resultsList');
+  if (!filtered.length) {
+    list.innerHTML = `<div class="text-center py-5" style="color:var(--muted);">
+      <i class="bi bi-search" style="font-size:32px; opacity:.35;"></i>
+      <p class="mt-2" style="font-size:14px;">No results match <strong>"${query}"</strong></p>
+      <button class="btn btn-sm btn-outline-secondary mt-1" onclick="clearFilter()">Clear filter</button>
+    </div>`;
+    return;
+  }
+  list.innerHTML = filtered.map(({r, i}) => buildCard(r, i)).join('');
+  initTooltips();
+}
+
+function clearFilter() {
+  document.getElementById('filterInput').value = '';
+  filterResults('');
+}
+
+function platformIcon(p) {
+  const map = { linkedin:'bi-linkedin', facebook:'bi-facebook', instagram:'bi-instagram', twitter:'bi-twitter-x', yellowpages:'bi-journal-text', yelp:'bi-star', maps:'bi-geo-alt-fill' };
+  return map[p] || 'bi-globe';
+}
+
+async function exportExcel(fields = 'all') {
+  if (!lastResults.length) { alert('No results to export. Run a search first.'); return; }
+  const names = { all:'All_Fields', name:'Names_Only', email:'Emails_Only', phone:'Phones_Only', name_email:'Name_Email', name_phone:'Name_Phone' };
+  try {
+    const r = await fetch('/search/export-excel', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ results: lastResults, fields })
+    });
+    if (!r.ok) { alert('Export failed.'); return; }
+    const blob = await r.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `LeadVault_${names[fields] || 'Export'}.xlsx`;
+    a.click();
+  } catch(e) { alert('Export failed: ' + e.message); }
+}
+
+async function queueLead(i, lead) {
+  const btn = document.getElementById('qbtn_'+i);
+  btn.disabled = true; btn.innerHTML = '<i class="bi bi-hourglass"></i>';
+  try {
+    const r = await fetch('/leads/add', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(lead)
+    });
+    const d = await r.json();
+    if (d.status === 'ok') {
+      btn.innerHTML = '<i class="bi bi-check"></i> Saved';
+      btn.className = 'btn btn-sm btn-success';
+      queuedCount++;
+      document.getElementById('statQueued').textContent = queuedCount;
+    }
+  } catch(e) {
+    btn.innerHTML = 'Error'; btn.disabled = false;
+  }
+}
+
+// ── LEAD PROFILE MODAL ─────────────────────────────────────────────────────
+let activeLeadIndex = null;
+let activeLeadData  = null;
+
+function openProfile(i) {
+  activeLeadIndex = i;
+  activeLeadData  = lastResults[i];
+  const r = activeLeadData;
+
+  document.getElementById('modalName').textContent = r.name || 'Unknown';
+  document.getElementById('modalPlatformLabel').innerHTML =
+    `<i class="bi ${platformIcon(r.platform)} me-1"></i>${r.platform || 'web'} · Score ${r.score}/100`;
+
+  // Email row with verify button
+  document.getElementById('modalEmail').innerHTML = r.email
+    ? `<i class="bi bi-envelope me-2" style="color:#7c3aed;"></i><strong>${r.email}</strong>
+       <button id="verifyBtn" onclick="verifyEmail('${r.email.replace(/'/g,'')}')"
+         style="font-size:11px; padding:2px 10px; border:1px solid rgba(124,58,237,.3);
+                border-radius:6px; background:rgba(124,58,237,.08); color:#7c3aed;
+                cursor:pointer; margin-left:8px;">Verify</button>
+       <span id="verifyResult" style="margin-left:6px; font-size:12px;"></span>`
+    : `<span style="color:var(--muted);"><i class="bi bi-envelope me-2"></i>No email available</span>`;
+
+  document.getElementById('modalPhone').innerHTML = r.phone
+    ? `<i class="bi bi-telephone me-2" style="color:#059669;"></i><strong>${r.phone}</strong>`
+    : `<span style="color:var(--muted);"><i class="bi bi-telephone me-2"></i>No phone available</span>`;
+
+  const shortUrl = (r.source_url||'').length > 65 ? r.source_url.substring(0,65)+'…' : r.source_url;
+  document.getElementById('modalUrl').innerHTML = r.source_url
+    ? `<i class="bi bi-link-45deg me-1" style="color:#3b82f6;"></i>
+       <a href="${r.source_url}" target="_blank" rel="noopener" style="color:#3b82f6;">${shortUrl}</a>`
+    : '';
+
+  const tags2 = (r.interests||'').split(',').map(t=>t.trim()).filter(Boolean);
+  document.getElementById('modalInterests').innerHTML = tags2.map(t =>
+    `<span class="tag-pill me-1 mb-1" style="font-size:11px;">${t}</span>`).join('');
+
+  document.getElementById('modalSnippet').textContent = r.snippet || '';
+
+  // Score badge
+  document.getElementById('modalScoreBadge').innerHTML =
+    `<span class="score-badge ${scoreClass(r.score)}" style="font-size:26px; padding:8px 18px;">${r.score}</span>`;
+
+  // Score breakdown
+  const bparts = ['Base: 50'];
+  if (r.email) bparts.push('+20 has email');
+  if (r.phone) bparts.push('+10 has phone');
+  const bonus = {linkedin:5,yellowpages:3,yelp:3,maps:3}[r.platform];
+  if (bonus) bparts.push(`+${bonus} platform`);
+  document.getElementById('modalBreakdown').innerHTML =
+    bparts.map(p=>`<div style="padding:2px 0;">• ${p}</div>`).join('');
+
+  // Notes (persisted in localStorage)
+  const noteKey = 'lv_note_' + btoa(encodeURIComponent(r.source_url||r.name||i)).slice(0,24);
+  const notesEl = document.getElementById('modalNotes');
+  notesEl.value        = localStorage.getItem(noteKey) || '';
+  notesEl.dataset.key  = noteKey;
+
+  // Reset AI summary
+  document.getElementById('modalSummaryText').innerHTML = '';
+  document.getElementById('modalSummaryBtn').disabled   = false;
+  document.getElementById('modalSummaryBtn').innerHTML  = 'Generate';
+
+  // Save button state
+  const cardBtn    = document.getElementById('qbtn_' + i);
+  const alreadySaved = cardBtn && cardBtn.classList.contains('btn-success');
+  const saveBtn    = document.getElementById('modalSaveBtn');
+  if (alreadySaved) {
+    saveBtn.innerHTML  = '<i class="bi bi-check me-1"></i>Already Saved';
+    saveBtn.className  = 'btn btn-sm btn-success';
+    saveBtn.disabled   = true;
+  } else {
+    saveBtn.innerHTML  = '<i class="bi bi-database-add me-1"></i>Save to DB';
+    saveBtn.className  = 'btn btn-sm btn-accent';
+    saveBtn.disabled   = false;
+  }
+
+  new bootstrap.Modal(document.getElementById('profileModal')).show();
+}
+
+function saveModalNote() {
+  const el = document.getElementById('modalNotes');
+  if (el.dataset.key) localStorage.setItem(el.dataset.key, el.value);
+}
+
+async function verifyEmail(email) {
+  const btn = document.getElementById('verifyBtn');
+  const res = document.getElementById('verifyResult');
+  btn.disabled = true; btn.textContent = '…';
+  try {
+    const r = await fetch('/search/verify-email', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ email })
+    });
+    const d = await r.json();
+    if (d.result === 'valid') {
+      res.innerHTML = '<span style="color:#059669;">✅ Valid domain</span>';
+    } else if (d.result === 'risky') {
+      res.innerHTML = '<span style="color:#d97706;">⚠️ Risky</span>';
+    } else {
+      res.innerHTML = '<span style="color:#dc2626;">❌ Invalid</span>';
+    }
+    btn.style.display = 'none';
+  } catch(e) {
+    res.textContent = 'Error'; btn.disabled = false; btn.textContent = 'Verify';
+  }
+}
+
+async function getModalSummary() {
+  if (!activeLeadData) return;
+  const btn = document.getElementById('modalSummaryBtn');
+  const txt = document.getElementById('modalSummaryText');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="bi bi-hourglass-split"></i>';
+  txt.innerHTML = '<span style="color:var(--muted); font-size:12px;">Generating summary…</span>';
+  try {
+    const r = await fetch('/search/lead-summary', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ lead: activeLeadData })
+    });
+    const d = await r.json();
+    txt.innerHTML = d.status === 'ok' ? d.summary : 'Could not generate summary.';
+    btn.innerHTML = '↻ Regenerate'; btn.disabled = false;
+  } catch(e) {
+    txt.textContent = 'Error: ' + e.message;
+    btn.innerHTML = 'Retry'; btn.disabled = false;
+  }
+}
+
+async function queueFromModal() {
+  if (!activeLeadData) return;
+  const btn = document.getElementById('modalSaveBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Saving…';
+  try {
+    const r = await fetch('/leads/add', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(activeLeadData)
+    });
+    const d = await r.json();
+    if (d.status === 'ok') {
+      btn.innerHTML  = '<i class="bi bi-check me-1"></i>Saved';
+      btn.className  = 'btn btn-sm btn-success';
+      queuedCount++;
+      document.getElementById('statQueued').textContent = queuedCount;
+      if (activeLeadIndex !== null) {
+        const cb = document.getElementById('qbtn_' + activeLeadIndex);
+        if (cb) { cb.innerHTML = '<i class="bi bi-check"></i> Saved'; cb.className = 'btn btn-sm btn-success'; cb.disabled = true; }
+      }
+    } else {
+      btn.innerHTML = '<i class="bi bi-database-add me-1"></i>Save to DB';
+      btn.className = 'btn btn-sm btn-accent'; btn.disabled = false;
+    }
+  } catch(e) {
+    btn.innerHTML = '<i class="bi bi-database-add me-1"></i>Save to DB';
+    btn.className = 'btn btn-sm btn-accent'; btn.disabled = false;
+  }
+}
+
+async function saveAllToDb() {
+  if (!lastResults.length) { alert('No results to save. Run a search first.'); return; }
+  const btn = document.getElementById('saveAllBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Saving…';
+  try {
+    const resp = await fetch('/leads/add-bulk', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ leads: lastResults })
+    });
+    const d = await resp.json();
+    if (d.status === 'ok') {
+      queuedCount = d.saved;
+      document.getElementById('statQueued').textContent = d.saved;
+      btn.innerHTML = `<i class="bi bi-check-circle me-1"></i>${d.saved} Saved`;
+      btn.className = 'btn btn-sm btn-success';
+      // Mark all individual queue buttons as saved
+      lastResults.forEach((_, i) => {
+        const qbtn = document.getElementById('qbtn_' + i);
+        if (qbtn) { qbtn.innerHTML = '<i class="bi bi-check"></i> Saved'; qbtn.className = 'btn btn-sm btn-success'; qbtn.disabled = true; }
+      });
+    } else {
+      btn.innerHTML = '<i class="bi bi-database-add me-1"></i>Save All to DB';
+      btn.disabled = false;
+      alert('Save failed. Try again.');
+    }
+  } catch(e) {
+    btn.innerHTML = '<i class="bi bi-database-add me-1"></i>Save All to DB';
+    btn.disabled = false;
+    alert('Error: ' + e.message);
+  }
+}
+
+async function runSearch() {
+  if (!tags.length) { alert('Add at least one keyword first'); return; }
+
+  const btn = document.getElementById('runBtn');
+  btn.disabled = true; btn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i> Searching…';
+  document.getElementById('logWrap').style.display = 'block';
+  document.getElementById('logBox').innerHTML = '';
+  document.getElementById('statsRow').style.display = 'none';
+  document.getElementById('nextStep').style.display = 'none';
+  document.getElementById('filterBar').style.display = 'none';
+  document.getElementById('filterInput').value = '';
+  document.getElementById('resultsList').innerHTML = '';
+  const sb = document.getElementById('saveAllBtn');
+  sb.innerHTML = '<i class="bi bi-database-add me-1"></i>Save All to DB';
+  sb.className = 'btn btn-sm btn-accent'; sb.disabled = false;
+
+  const platform = document.getElementById('platform').value;
+  const region   = document.getElementById('region').value;
+
+  log(`Starting search for: ${tags.join(', ')}`);
+  log(`Platform: ${platform} | Region: ${region}`, 'dim');
+  log('Connecting to public data sources…');
+
+  try {
+    const resp = await fetch('/search/run', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ keywords: tags, platform, region })
+    });
+    const data = await resp.json();
+
+    if (data.status === 'ok') {
+      log(`Scan complete — ${data.count} results found`, 'ok');
+      log('Running deduplication and scoring…', 'dim');
+      setTimeout(() => {
+        log('Done. Results ready below.', 'ok');
+        renderResults(data.results);
+        document.getElementById('nextStep').style.display = 'block';
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-arrow-repeat me-1"></i> Run Again';
+      }, 600);
+    } else {
+      log('Search error: ' + (data.message || 'unknown error'), 'err');
+      btn.disabled = false; btn.innerHTML = '<i class="bi bi-play-fill me-1"></i> Run Search';
+    }
+  } catch(e) {
+    log('Network error: ' + e.message, 'err');
+    btn.disabled = false; btn.innerHTML = '<i class="bi bi-play-fill me-1"></i> Run Search';
+  }
+}
+</script>
+{% endblock %}

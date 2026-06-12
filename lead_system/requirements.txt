@@ -1,0 +1,8 @@
+flask==3.0.3
+requests==2.32.3
+beautifulsoup4==4.12.3
+anthropic==0.28.0
+selenium==4.20.0
+webdriver-manager==4.0.1
+google-search-results==2.4.2
+reportlab==4.2.0

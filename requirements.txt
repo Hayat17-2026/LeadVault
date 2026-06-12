@@ -1,0 +1,12 @@
+﻿flask
+requests
+beautifulsoup4
+anthropic
+openpyxl
+gunicorn
+dnspython
+httpx
+jinja2
+itsdangerous
+click
+werkzeug

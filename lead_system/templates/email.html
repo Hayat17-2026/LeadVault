@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+{% block title %}Email Outreach — LeadVault{% endblock %}
+{% block page_title %}Email Outreach Module{% endblock %}
+{% block page_sub %}Send real emails to leads and reports to admin via Gmail{% endblock %}
+
+{% block content %}
+<!-- ── PIPELINE STEP BAR (full 5 steps) ── -->
+<div class="pipeline mb-4">
+  <div class="pipeline-step done"><span class="ps-num">✔</span><i class="bi bi-search"></i> Search</div>
+  <div class="pipeline-step done"><span class="ps-num">✔</span><i class="bi bi-cloud-download"></i> Web Fetch</div>
+  <div class="pipeline-step done"><span class="ps-num">✔</span><i class="bi bi-cpu"></i> AI Classify</div>
+  <div class="pipeline-step done"><span class="ps-num">✔</span><i class="bi bi-people"></i> Leads DB</div>
+  <div class="pipeline-step active"><span class="ps-num">05</span><i class="bi bi-envelope-paper"></i> Email</div>
+</div>
+
+<div class="row g-3">
+  <!-- Send welcome to lead -->
+  <div class="col-md-6">
+    <div class="card mb-3">
+      <div class="card-header"><i class="bi bi-envelope-heart me-2"></i>Send Welcome Email to a Lead</div>
+      <div class="card-body">
+        <div class="mb-2">
+          <label class="form-label" style="font-size:13px;font-weight:600;">Lead Name</label>
+          <input class="form-control form-control-sm" id="leadName" list="leadNameOptions"
+            placeholder="Type or pick a lead…" autocomplete="off" oninput="onLeadNameInput(this.value)"/>
+          <datalist id="leadNameOptions"></datalist>
+        </div>
+        <div class="mb-3">
+          <label class="form-label" style="font-size:13px;font-weight:600;">Lead Email</label>
+          <input class="form-control form-control-sm" id="leadEmail" type="email"
+            list="leadEmailOptions" placeholder="lead@business.com" autocomplete="off"/>
+          <datalist id="leadEmailOptions"></datalist>
+        </div>
+        <button class="btn btn-accent w-100" onclick="sendWelcome()">
+          <i class="bi bi-send me-1"></i> Send Welcome Email
+        </button>
+        <div id="welcomeMsg" class="mt-2" style="display:none;"></div>
+      </div>
+    </div>
+
+    <!-- Quick pick from DB -->
+    <div class="card">
+      <div class="card-header"><i class="bi bi-people me-2"></i>Quick Send to DB Leads</div>
+      <div class="card-body">
+        <p style="font-size:13px;color:#718096;">Pick a lead from your database with an email:</p>
+        <div id="dbLeadsList" style="max-height:200px;overflow-y:auto;">
+          <div class="text-center text-muted py-3" style="font-size:13px;">Loading…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Send report to admin -->
+  <div class="col-md-6">
+    <div class="card mb-3">
+      <div class="card-header"><i class="bi bi-file-earmark-bar-graph me-2"></i>Send Database Report to Admin</div>
+      <div class="card-body">
+        <p style="font-size:13px;color:#718096;">Email yourself a summary of all leads in the database.</p>
+        <div class="mb-3">
+          <label class="form-label" style="font-size:13px;font-weight:600;">Admin Email</label>
+          <input class="form-control form-control-sm" id="adminEmail" type="email"
+            placeholder="your@email.com" autocomplete="email"/>
+        </div>
+        <button class="btn btn-outline-primary w-100" onclick="sendReport()">
+          <i class="bi bi-graph-up me-1"></i> Send Report
+        </button>
+        <div id="reportMsg" class="mt-2" style="display:none;"></div>
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-header"><i class="bi bi-broadcast me-2"></i>Bulk Email Campaign</div>
+      <div class="card-body">
+        <p style="font-size:13px;color:#718096;">Send the welcome email to <strong>ALL leads</strong> in your database that have an email address.</p>
+        <button class="btn btn-warning w-100" onclick="sendBulk()">
+          <i class="bi bi-send-fill me-1"></i> Send to All Leads
+        </button>
+        <div id="bulkMsg" class="mt-2" style="display:none;"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><i class="bi bi-info-circle me-2"></i>Setup Status</div>
+      <div class="card-body">
+        <p style="font-size:13px;color:#4a5568;line-height:1.7;">
+          This module sends <strong>real emails</strong> through Gmail SMTP.<br/><br/>
+          Make sure you've added your Gmail address and 16-character App Password in
+          <code style="background:#f0f0f0;padding:2px 6px;border-radius:4px;">services/email_service.py</code>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── STEP NAVIGATION (last step: Back only) ── -->
+<div class="step-nav">
+  <a href="/leads/" class="btn-step btn-step-back">
+    <i class="bi bi-arrow-left"></i> Back: Leads DB
+  </a>
+  <span class="step-nav-label">Step 5 of 5 · Email Outreach</span>
+  <a href="/" class="btn-step btn-step-next">
+    Finish: Dashboard <i class="bi bi-grid-1x2"></i>
+  </a>
+</div>
+
+<style>
+  .step-nav {
+    display:flex; align-items:center; justify-content:space-between;
+    margin-top:28px; padding-top:20px; border-top:1px solid rgba(124,58,237,.18);
+  }
+  .step-nav-label { font-size:12px; color:#94a3b8; font-weight:500; }
+  .btn-step {
+    display:inline-flex; align-items:center; gap:8px;
+    padding:10px 20px; border-radius:10px; font-size:14px; font-weight:600;
+    text-decoration:none; transition:all .2s;
+  }
+  .btn-step-back { background:rgba(255,255,255,.05); color:#a78bfa; border:1.5px solid rgba(124,58,237,.22); }
+  .btn-step-back:hover { border-color:#7c3aed; background:rgba(124,58,237,.1); color:#a78bfa; }
+  .btn-step-next {
+    background:linear-gradient(135deg,#7c3aed,#6d28d9); color:#fff;
+    border:none; box-shadow:0 4px 14px rgba(124,58,237,0.35);
+  }
+  .btn-step-next:hover { transform:translateY(-1px); box-shadow:0 6px 18px rgba(124,58,237,0.5); color:#fff; }
+  @media (max-width:600px){ .step-nav-label{ display:none; } }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function loadDbLeads() {
+  try {
+    const r = await fetch('/leads/all');
+    const leads = await r.json();
+    const withEmail = leads.filter(l => l.email && l.email !== '—');
+    const box = document.getElementById('dbLeadsList');
+    if (!withEmail.length) {
+      box.innerHTML = '<div class="text-muted text-center py-3" style="font-size:13px;">No leads with emails yet</div>';
+      return;
+    }
+    box.innerHTML = withEmail.map(l => `
+      <div class="d-flex align-items-center justify-content-between py-2" style="border-bottom:1px solid #f0f0f0;">
+        <div style="font-size:13px;">
+          <div style="font-weight:600;">${l.name}</div>
+          <div style="color:#718096;font-size:12px;">${l.email}</div>
+        </div>
+        <button class="btn btn-sm btn-outline-success" onclick="quickSend('${l.email}','${(l.name||'').replace(/'/g,'')}')">
+          <i class="bi bi-send"></i>
+        </button>
+      </div>
+    `).join('');
+  } catch(e) {
+    document.getElementById('dbLeadsList').innerHTML = '<div class="text-danger" style="font-size:13px;">Error loading</div>';
+  }
+}
+
+async function quickSend(email, name) {
+  document.getElementById('leadEmail').value = email;
+  document.getElementById('leadName').value  = name;
+  await sendWelcome();
+}
+
+async function sendWelcome() {
+  const name  = document.getElementById('leadName').value.trim();
+  const email = document.getElementById('leadEmail').value.trim();
+  const msg   = document.getElementById('welcomeMsg');
+  if (!email) { alert('Enter a lead email'); return; }
+
+  msg.style.display = 'block';
+  msg.innerHTML = '<div class="alert alert-info py-2 mb-0" style="font-size:13px;"><i class="bi bi-hourglass-split me-1"></i> Sending…</div>';
+
+  const r = await fetch('/email/send-welcome', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ name, email })
+  });
+  const d = await r.json();
+  if (d.status === 'ok') {
+    msg.innerHTML = '<div class="alert alert-success py-2 mb-0" style="font-size:13px;"><i class="bi bi-check-circle me-1"></i> '+d.message+'</div>';
+  } else {
+    msg.innerHTML = '<div class="alert alert-danger py-2 mb-0" style="font-size:13px;"><i class="bi bi-x-circle me-1"></i> '+d.message+'</div>';
+  }
+}
+
+async function sendReport() {
+  const email = document.getElementById('adminEmail').value.trim();
+  const msg   = document.getElementById('reportMsg');
+  if (!email) { alert('Enter your email'); return; }
+
+  msg.style.display = 'block';
+  msg.innerHTML = '<div class="alert alert-info py-2 mb-0" style="font-size:13px;"><i class="bi bi-hourglass-split me-1"></i> Sending…</div>';
+
+  const r = await fetch('/email/send-report', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ email })
+  });
+  const d = await r.json();
+  if (d.status === 'ok') {
+    msg.innerHTML = '<div class="alert alert-success py-2 mb-0" style="font-size:13px;"><i class="bi bi-check-circle me-1"></i> '+d.message+'</div>';
+  } else {
+    msg.innerHTML = '<div class="alert alert-danger py-2 mb-0" style="font-size:13px;"><i class="bi bi-x-circle me-1"></i> '+d.message+'</div>';
+  }
+}
+
+async function sendBulk() {
+  if (!confirm('Send the welcome email to ALL leads with an email address? This may take a moment.')) return;
+  const msg = document.getElementById('bulkMsg');
+  const btn = event.target;
+  btn.disabled = true; btn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i> Sending to all leads…';
+  msg.style.display = 'block';
+  msg.innerHTML = '<div class="alert alert-info py-2 mb-0" style="font-size:13px;"><i class="bi bi-hourglass-split me-1"></i> Sending emails, please wait…</div>';
+
+  const r = await fetch('/email/send-bulk', { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' });
+  const d = await r.json();
+
+  if (d.status === 'ok') {
+    msg.innerHTML = `<div class="alert alert-success py-2 mb-0" style="font-size:13px;"><i class="bi bi-check-circle me-1"></i> Done! Sent ${d.sent}/${d.total} emails. ${d.failed ? '(' + d.failed + ' failed)' : ''}</div>`;
+  } else {
+    msg.innerHTML = '<div class="alert alert-danger py-2 mb-0" style="font-size:13px;"><i class="bi bi-x-circle me-1"></i> ' + d.message + '</div>';
+  }
+  btn.disabled = false; btn.innerHTML = '<i class="bi bi-send-fill me-1"></i> Send to All Leads';
+}
+
+loadDbLeads();
+
+// ── Lead autocomplete ──
+let _leadSuggestions = [];
+async function loadLeadSuggestions() {
+  try {
+    const r = await fetch('/leads/suggestions');
+    _leadSuggestions = await r.json();
+    const namesDL  = document.getElementById('leadNameOptions');
+    const emailsDL = document.getElementById('leadEmailOptions');
+    namesDL.innerHTML  = _leadSuggestions.map(l => `<option value="${escHtml(l.name)}">`).join('');
+    emailsDL.innerHTML = _leadSuggestions.filter(l => l.email)
+      .map(l => `<option value="${escHtml(l.email)}">`).join('');
+  } catch(e) {}
+}
+function onLeadNameInput(val) {
+  const match = _leadSuggestions.find(l => l.name === val);
+  if (match) {
+    if (match.email) document.getElementById('leadEmail').value = match.email;
+  }
+}
+function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;'); }
+loadLeadSuggestions();
+</script>
+{% endblock %}

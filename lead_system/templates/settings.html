@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Settings — LeadVault{% endblock %}
+
+{% block page_title %}Settings{% endblock %}
+{% block page_sub %}Application configuration{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-header">
+        <i class="bi bi-gear me-2" style="color:var(--accent)"></i>Application Settings
+      </div>
+      <div class="card-body p-4">
+
+        <div class="mb-4">
+          <label class="form-label text-muted" style="font-size:12px; text-transform:uppercase; letter-spacing:.8px;">App Name</label>
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-safe2-fill" style="color:var(--sky); font-size:18px;"></i>
+            <span style="font-size:17px; font-weight:600; color:#1a202c;">LeadVault</span>
+          </div>
+        </div>
+
+        <hr style="border-color:#f0f0f0;">
+
+        <div class="mb-4">
+          <label class="form-label text-muted" style="font-size:12px; text-transform:uppercase; letter-spacing:.8px;">Logged In As</label>
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-person-circle" style="color:var(--accent); font-size:18px;"></i>
+            <span style="font-size:15px; font-weight:500; color:#1a202c;">{{ username }}</span>
+          </div>
+        </div>
+
+        <hr style="border-color:#f0f0f0;">
+
+        <div class="mb-2">
+          <label class="form-label text-muted" style="font-size:12px; text-transform:uppercase; letter-spacing:.8px;">Configuration</label>
+          <div class="d-flex align-items-center gap-2 p-3" style="background:#f8fafc; border-radius:8px; border:1px solid #e2e8f0;">
+            <i class="bi bi-info-circle" style="color:#718096; font-size:16px;"></i>
+            <span style="font-size:13px; color:#718096;">Settings are managed by the admin. Contact your administrator to make changes.</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
