@@ -1,5 +1,5 @@
 from services.auth_service import login_required, rate_limited
-from flask import Blueprint, render_template, request, jsonify
+from flask import Blueprint, render_template, request, jsonify, session
 from database.db import get_db
 from services.activity_service import log_activity
 
@@ -271,3 +271,108 @@ def add_manual():
     db.close()
     log_activity("add_lead", f'Manually added: {d.get("name")}')
     return jsonify({"status": "ok", "message": "Lead added"})
+
+
+# ── REVIEWS ──────────────────────────────────────────────────────────────────
+
+@leads_bp.route("/add-review", methods=["POST"])
+@login_required
+def add_review():
+    data      = request.get_json(force=True) or {}
+    lead_url  = data.get("lead_url", "").strip()
+    lead_name = data.get("lead_name", "").strip()
+    rating    = int(data.get("rating", 0))
+    comment   = data.get("comment", "").strip()
+    username  = session.get("username", "guest")
+    if not lead_url or not (1 <= rating <= 5):
+        return jsonify({"status": "error", "message": "Invalid data"}), 400
+    db = get_db()
+    existing = db.execute("SELECT id FROM lead_reviews WHERE lead_url=? AND username=?", (lead_url, username)).fetchone()
+    if existing:
+        db.execute("UPDATE lead_reviews SET rating=?, comment=?, created_at=CURRENT_TIMESTAMP WHERE id=?", (rating, comment, existing["id"]))
+    else:
+        db.execute("INSERT INTO lead_reviews (lead_url, lead_name, username, rating, comment) VALUES (?,?,?,?,?)", (lead_url, lead_name, username, rating, comment))
+    db.commit(); db.close()
+    log_activity("review", f'Reviewed "{lead_name}" — {rating}/5 stars')
+    return jsonify({"status": "ok"})
+
+@leads_bp.route("/get-reviews", methods=["GET"])
+@login_required
+def get_reviews():
+    lead_url = request.args.get("url", "")
+    username = session.get("username", "guest")
+    db   = get_db()
+    rows = db.execute("SELECT username, rating, comment, created_at FROM lead_reviews WHERE lead_url=? ORDER BY created_at DESC", (lead_url,)).fetchall()
+    agg  = db.execute("SELECT AVG(rating) as avg, COUNT(*) as cnt FROM lead_reviews WHERE lead_url=?", (lead_url,)).fetchone()
+    mine = db.execute("SELECT rating, comment FROM lead_reviews WHERE lead_url=? AND username=?", (lead_url, username)).fetchone()
+    db.close()
+    return jsonify({
+        "status": "ok",
+        "reviews": [dict(r) for r in rows],
+        "avg": round(agg["avg"], 1) if agg["avg"] else None,
+        "count": agg["cnt"],
+        "my_review": dict(mine) if mine else None
+    })
+
+# ── REFERRALS / COMMISSIONS ───────────────────────────────────────────────────
+
+@leads_bp.route("/claim-visit", methods=["POST"])
+@login_required
+def claim_visit():
+    data      = request.get_json(force=True) or {}
+    lead_url  = data.get("lead_url", "").strip()
+    lead_name = data.get("lead_name", "").strip()
+    username  = session.get("username", "guest")
+    if not lead_url:
+        return jsonify({"status": "error", "message": "No lead URL"}), 400
+    db = get_db()
+    existing = db.execute("SELECT id, status FROM lead_referrals WHERE lead_url=? AND username=?", (lead_url, username)).fetchone()
+    if existing:
+        db.close()
+        return jsonify({"status": "error", "message": f"Already claimed — status: {existing['status']}"})
+    db.execute("INSERT INTO lead_referrals (lead_url, lead_name, username, status) VALUES (?,?,?,'pending')", (lead_url, lead_name, username))
+    db.commit(); db.close()
+    log_activity("referral", f'Claimed visit to "{lead_name}"')
+    return jsonify({"status": "ok", "message": "Visit claimed! Pending admin approval."})
+
+@leads_bp.route("/my-referrals", methods=["GET"])
+@login_required
+def my_referrals():
+    username = session.get("username", "guest")
+    db   = get_db()
+    rows = db.execute("SELECT * FROM lead_referrals WHERE username=? ORDER BY created_at DESC", (username,)).fetchall()
+    total = db.execute("SELECT SUM(commission_amount) as t FROM lead_referrals WHERE username=? AND status='approved'", (username,)).fetchone()["t"] or 0
+    db.close()
+    return jsonify({"status": "ok", "referrals": [dict(r) for r in rows], "total_commission": round(total, 2)})
+
+@leads_bp.route("/all-referrals", methods=["GET"])
+@login_required
+def all_referrals():
+    if session.get("username") != "admin":
+        return jsonify({"status": "error", "message": "Admin only"}), 403
+    db   = get_db()
+    rows = db.execute("SELECT * FROM lead_referrals ORDER BY created_at DESC").fetchall()
+    db.close()
+    return jsonify({"status": "ok", "referrals": [dict(r) for r in rows]})
+
+@leads_bp.route("/approve-referral", methods=["POST"])
+@login_required
+def approve_referral():
+    if session.get("username") != "admin":
+        return jsonify({"status": "error", "message": "Admin only"}), 403
+    data       = request.get_json(force=True) or {}
+    ref_id     = data.get("id")
+    commission = float(data.get("commission", 10.0))
+    action     = data.get("action", "approve")
+    db = get_db()
+    if action == "approve":
+        db.execute("UPDATE lead_referrals SET status='approved', commission_amount=?, approved_at=CURRENT_TIMESTAMP WHERE id=?", (commission, ref_id))
+    else:
+        db.execute("UPDATE lead_referrals SET status='rejected' WHERE id=?", (ref_id,))
+    db.commit(); db.close()
+    return jsonify({"status": "ok"})
+
+@leads_bp.route("/referrals-page", methods=["GET"])
+@login_required
+def referrals_page():
+    return render_template("referrals.html")

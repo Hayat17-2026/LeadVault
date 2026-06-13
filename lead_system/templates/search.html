@@ -223,10 +223,43 @@
             oninput="saveModalNote()"
             style="font-size:13px; resize:none; border-color:rgba(124,58,237,.2);"></textarea>
         </div>
+
+        <!-- ⭐ Community Reviews -->
+        <div class="mt-3" style="border-top:1px solid var(--border); padding-top:14px;">
+          <label style="font-size:12px; font-weight:600; color:var(--text2); letter-spacing:.3px;">⭐ COMMUNITY REVIEWS</label>
+          <div id="modalReviewsList" style="margin:8px 0; font-size:12px; color:var(--muted);">Loading…</div>
+          <div style="display:flex; align-items:center; gap:8px; margin-top:8px;">
+            <div id="starRating" style="font-size:22px; cursor:pointer; letter-spacing:2px;">
+              <span onclick="setRating(1)">☆</span><span onclick="setRating(2)">☆</span>
+              <span onclick="setRating(3)">☆</span><span onclick="setRating(4)">☆</span>
+              <span onclick="setRating(5)">☆</span>
+            </div>
+            <span id="ratingLabel" style="font-size:12px; color:var(--muted);">Click to rate</span>
+          </div>
+          <div class="d-flex gap-2 mt-2">
+            <input type="text" id="reviewComment" class="form-control form-control-sm" placeholder="Write a short review…" style="font-size:12px;">
+            <button class="btn btn-sm btn-accent" onclick="submitReview()" style="white-space:nowrap; font-size:12px;">Submit</button>
+          </div>
+        </div>
+
+        <!-- 💰 I Visited This -->
+        <div class="mt-3" style="border-top:1px solid var(--border); padding-top:14px;">
+          <label style="font-size:12px; font-weight:600; color:var(--text2); letter-spacing:.3px;">💰 REFERRAL COMMISSION</label>
+          <p style="font-size:12px; color:var(--muted); margin:6px 0;">Did you visit this business through LeadVault? Claim your commission!</p>
+          <button class="btn btn-sm" id="visitBtn" onclick="claimVisit()"
+            style="background:rgba(16,185,129,.15); color:#34d399; border:1px solid rgba(16,185,129,.3); font-size:12px;">
+            <i class="bi bi-geo-alt-fill me-1"></i>I Visited This Lead
+          </button>
+          <div id="visitMsg" style="font-size:12px; margin-top:6px;"></div>
+        </div>
       </div>
 
       <div class="modal-footer" style="background:var(--card2); border-top:1px solid rgba(124,58,237,.12); padding:12px 20px;">
         <button class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+        <button class="btn btn-sm" onclick="window.open('/leads/referrals-page','_blank')"
+          style="background:rgba(16,185,129,.12); color:#34d399; border:1px solid rgba(16,185,129,.25); font-size:12px;">
+          <i class="bi bi-cash-coin me-1"></i>My Commissions
+        </button>
         <button class="btn btn-sm btn-accent" id="modalSaveBtn" onclick="queueFromModal()">
           <i class="bi bi-database-add me-1"></i>Save to DB
         </button>
@@ -545,6 +578,16 @@ function openProfile(i) {
     saveBtn.disabled   = false;
   }
 
+  // Reset reviews + visit
+  _currentRating = 0;
+  document.querySelectorAll('#starRating span').forEach(s => s.textContent = '☆');
+  document.getElementById('ratingLabel').textContent = 'Click to rate';
+  document.getElementById('reviewComment').value = '';
+  document.getElementById('visitMsg').innerHTML = '';
+  document.getElementById('visitBtn').disabled = false;
+  document.getElementById('visitBtn').innerHTML = '<i class="bi bi-geo-alt-fill me-1"></i>I Visited This Lead';
+  if (r.source_url) loadReviews(r.source_url);
+
   bootstrap.Modal.getOrCreateInstance(document.getElementById('profileModal')).show();
 }
 
@@ -730,6 +773,63 @@ async function runSearch() {
     btn.disabled = false; btn.innerHTML = '<i class="bi bi-play-fill me-1"></i> Run Search';
   }
 }
+// ── REVIEWS ──────────────────────────────────────────────────────────────
+let _currentRating = 0;
+function setRating(n) {
+  _currentRating = n;
+  const stars = document.querySelectorAll('#starRating span');
+  stars.forEach((s, i) => s.textContent = i < n ? '★' : '☆');
+  document.getElementById('ratingLabel').textContent = ['','Poor','Fair','Good','Very Good','Excellent'][n];
+}
+async function loadReviews(url) {
+  try {
+    const r = await fetch('/leads/get-reviews?url=' + encodeURIComponent(url));
+    const d = await r.json();
+    const el = document.getElementById('modalReviewsList');
+    if (!d.reviews.length) { el.innerHTML = '<span style="color:var(--muted);">No reviews yet — be the first!</span>'; return; }
+    const stars = n => '★'.repeat(n) + '☆'.repeat(5-n);
+    el.innerHTML = `<div style="margin-bottom:6px;"><strong style="color:var(--accent);">${stars(Math.round(d.avg))} ${d.avg}/5</strong> <span style="color:var(--muted);">(${d.count} review${d.count>1?'s':''})</span></div>`
+      + d.reviews.slice(0,3).map(r => `<div style="padding:4px 0; border-bottom:1px solid var(--border);">
+        <span style="color:#fbbf24;">${stars(r.rating)}</span>
+        <strong style="font-size:11px;"> ${r.username}</strong>
+        ${r.comment ? `<span style="color:var(--text2); font-size:11px;"> — ${r.comment}</span>` : ''}
+      </div>`).join('');
+    if (d.my_review) {
+      setRating(d.my_review.rating);
+      document.getElementById('reviewComment').value = d.my_review.comment || '';
+    }
+  } catch(e) { document.getElementById('modalReviewsList').innerHTML = ''; }
+}
+async function submitReview() {
+  if (!_currentRating) { alert('Please select a star rating first'); return; }
+  const r = currentResults[currentProfileIdx];
+  const comment = document.getElementById('reviewComment').value.trim();
+  const resp = await fetch('/leads/add-review', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ lead_url: r.source_url, lead_name: r.name, rating: _currentRating, comment })
+  });
+  const d = await resp.json();
+  if (d.status === 'ok') { loadReviews(r.source_url); alert('Review submitted! ⭐'); }
+}
+
+// ── CLAIM VISIT / COMMISSION ─────────────────────────────────────────────
+async function claimVisit() {
+  const r = currentResults[currentProfileIdx];
+  const resp = await fetch('/leads/claim-visit', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ lead_url: r.source_url, lead_name: r.name })
+  });
+  const d = await resp.json();
+  const msg = document.getElementById('visitMsg');
+  const btn = document.getElementById('visitBtn');
+  if (d.status === 'ok') {
+    msg.innerHTML = '<span style="color:#34d399;">✅ Claimed! Pending admin approval. <a href="/leads/referrals-page" target="_blank">View My Commissions →</a></span>';
+    btn.disabled = true;
+  } else {
+    msg.innerHTML = `<span style="color:#fbbf24;">⚠️ ${d.message}</span>`;
+  }
+}
+
 // Move modal to body so it escapes .main stacking context (fixes backdrop blocking clicks)
 document.addEventListener('DOMContentLoaded', () => {
   const m = document.getElementById('profileModal');

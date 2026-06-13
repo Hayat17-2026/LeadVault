@@ -53,5 +53,31 @@ def init_db():
     except Exception:
         pass  # column already exists
 
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS lead_reviews (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            lead_url    TEXT NOT NULL,
+            lead_name   TEXT,
+            username    TEXT NOT NULL,
+            rating      INTEGER NOT NULL CHECK(rating BETWEEN 1 AND 5),
+            comment     TEXT,
+            created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS lead_referrals (
+            id                INTEGER PRIMARY KEY AUTOINCREMENT,
+            lead_url          TEXT NOT NULL,
+            lead_name         TEXT,
+            username          TEXT NOT NULL,
+            status            TEXT DEFAULT 'pending',
+            commission_amount REAL DEFAULT 0,
+            note              TEXT,
+            created_at        DATETIME DEFAULT CURRENT_TIMESTAMP,
+            approved_at       DATETIME
+        )
+    """)
+
     conn.commit()
     conn.close()

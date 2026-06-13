@@ -407,6 +407,9 @@
     <a href="/activity/" class="{{ 'active' if '/activity' in request.path else '' }}">
       <i class="bi bi-clock-history"></i> Activity Log
     </a>
+    <a href="/leads/referrals-page" class="{{ 'active' if '/referrals' in request.path else '' }}">
+      <i class="bi bi-cash-coin"></i> My Commissions
+    </a>
     <div class="nav-section">System</div>
     {% if session.get('username') == 'admin' %}
     <a href="/users" class="{{ 'active' if '/users' in request.path else '' }}">

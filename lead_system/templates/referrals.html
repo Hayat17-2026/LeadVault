@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+{% block title %}My Commissions — LeadVault{% endblock %}
+{% block page_title %}💰 My Commissions{% endblock %}
+{% block page_sub %}Track your referrals and earned commissions{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-4">
+  <div class="col-md-3">
+    <div class="stat-card accent">
+      <div class="label">Total Earned</div>
+      <div class="value" id="totalEarned">$0</div>
+      <div class="sub">approved commissions</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="stat-card">
+      <div class="label">Pending</div>
+      <div class="value" id="totalPending">0</div>
+      <div class="sub">awaiting admin approval</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="stat-card green">
+      <div class="label">Approved</div>
+      <div class="value" id="totalApproved">0</div>
+      <div class="sub">confirmed visits</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="stat-card">
+      <div class="label">Total Claims</div>
+      <div class="value" id="totalClaims">0</div>
+      <div class="sub">all referrals submitted</div>
+    </div>
+  </div>
+</div>
+
+<!-- How it works -->
+<div class="card mb-4">
+  <div class="card-header"><i class="bi bi-info-circle me-2"></i>How Commissions Work</div>
+  <div class="card-body">
+    <div class="row g-3 text-center">
+      <div class="col-md-3">
+        <div style="font-size:32px; margin-bottom:8px;">🔍</div>
+        <strong>1. Search</strong>
+        <div style="font-size:12px; color:var(--muted);">Find a lead (restaurant, hotel, business)</div>
+      </div>
+      <div class="col-md-3">
+        <div style="font-size:32px; margin-bottom:8px;">🤝</div>
+        <strong>2. Visit</strong>
+        <div style="font-size:12px; color:var(--muted);">Go to the business and click "I Visited This"</div>
+      </div>
+      <div class="col-md-3">
+        <div style="font-size:32px; margin-bottom:8px;">⏳</div>
+        <strong>3. Wait</strong>
+        <div style="font-size:12px; color:var(--muted);">Admin reviews and approves your claim</div>
+      </div>
+      <div class="col-md-3">
+        <div style="font-size:32px; margin-bottom:8px;">💰</div>
+        <strong>4. Earn</strong>
+        <div style="font-size:12px; color:var(--muted);">Commission added to your account</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- My referrals table -->
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-list-check me-2"></i>My Referrals</span>
+    <button class="btn btn-sm btn-accent" onclick="loadReferrals()"><i class="bi bi-arrow-clockwise me-1"></i>Refresh</button>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table mb-0">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Lead Name</th>
+            <th>Date Claimed</th>
+            <th>Status</th>
+            <th>Commission</th>
+          </tr>
+        </thead>
+        <tbody id="referralsTable">
+          <tr><td colspan="5" class="text-center py-4" style="color:var(--muted);">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% if session.get('username') == 'admin' %}
+<!-- Admin panel -->
+<div class="card mt-4">
+  <div class="card-header" style="background:linear-gradient(135deg,rgba(124,58,237,.15),rgba(124,58,237,.05));">
+    <i class="bi bi-shield-check me-2" style="color:var(--accent);"></i>Admin — Pending Approvals
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table mb-0">
+        <thead>
+          <tr><th>#</th><th>User</th><th>Lead</th><th>Date</th><th>Commission ($)</th><th>Action</th></tr>
+        </thead>
+        <tbody id="adminTable">
+          <tr><td colspan="6" class="text-center py-4" style="color:var(--muted);">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function loadReferrals() {
+  const r = await fetch('/leads/my-referrals');
+  const d = await r.json();
+  if (d.status !== 'ok') return;
+
+  document.getElementById('totalEarned').textContent = '$' + d.total_commission;
+  const refs = d.referrals;
+  document.getElementById('totalClaims').textContent   = refs.length;
+  document.getElementById('totalPending').textContent  = refs.filter(r => r.status === 'pending').length;
+  document.getElementById('totalApproved').textContent = refs.filter(r => r.status === 'approved').length;
+
+  const tbody = document.getElementById('referralsTable');
+  if (!refs.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4" style="color:var(--muted);">No referrals yet — find a lead and click "I Visited This Lead"</td></tr>';
+    return;
+  }
+  tbody.innerHTML = refs.map((r, i) => `
+    <tr>
+      <td>${i+1}</td>
+      <td><strong>${r.lead_name || 'Unknown'}</strong></td>
+      <td style="font-size:12px; color:var(--muted);">${r.created_at?.substring(0,10) || ''}</td>
+      <td>${statusBadge(r.status)}</td>
+      <td>${r.status === 'approved' ? '<strong style="color:var(--green);">$' + r.commission_amount + '</strong>' : '—'}</td>
+    </tr>`).join('');
+}
+
+async function loadAdmin() {
+  const r = await fetch('/leads/all-referrals');
+  const d = await r.json();
+  if (d.status !== 'ok') return;
+  const pending = d.referrals.filter(r => r.status === 'pending');
+  const tbody = document.getElementById('adminTable');
+  if (!pending.length) {
+    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4" style="color:var(--muted);">No pending referrals</td></tr>';
+    return;
+  }
+  tbody.innerHTML = pending.map((r, i) => `
+    <tr>
+      <td>${i+1}</td>
+      <td><span class="tag-pill">${r.username}</span></td>
+      <td>${r.lead_name || 'Unknown'}</td>
+      <td style="font-size:12px; color:var(--muted);">${r.created_at?.substring(0,10) || ''}</td>
+      <td><input type="number" id="comm_${r.id}" value="10" min="1" max="1000" style="width:70px; border:1px solid var(--border); border-radius:6px; padding:4px 8px; background:var(--bg2); color:var(--text); font-size:12px;"></td>
+      <td class="d-flex gap-2">
+        <button class="btn btn-sm" style="background:rgba(16,185,129,.15); color:#34d399; border:1px solid rgba(16,185,129,.3); font-size:11px;"
+          onclick="approveRef(${r.id}, 'approve')"><i class="bi bi-check2-circle me-1"></i>Approve</button>
+        <button class="btn btn-sm" style="background:rgba(239,68,68,.1); color:#f87171; border:1px solid rgba(239,68,68,.25); font-size:11px;"
+          onclick="approveRef(${r.id}, 'reject')"><i class="bi bi-x-circle me-1"></i>Reject</button>
+      </td>
+    </tr>`).join('');
+}
+
+async function approveRef(id, action) {
+  const commission = parseFloat(document.getElementById('comm_' + id)?.value || 10);
+  const r = await fetch('/leads/approve-referral', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({id, action, commission})
+  });
+  const d = await r.json();
+  if (d.status === 'ok') { loadAdmin(); loadReferrals(); }
+}
+
+function statusBadge(s) {
+  if (s === 'approved') return '<span class="badge bg-success">✅ Approved</span>';
+  if (s === 'rejected') return '<span class="badge bg-danger">❌ Rejected</span>';
+  return '<span class="badge bg-warning">⏳ Pending</span>';
+}
+
+loadReferrals();
+{% if session.get('username') == 'admin' %}loadAdmin();{% endif %}
+</script>
+{% endblock %}
