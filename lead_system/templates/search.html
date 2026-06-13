@@ -730,5 +730,10 @@ async function runSearch() {
     btn.disabled = false; btn.innerHTML = '<i class="bi bi-play-fill me-1"></i> Run Search';
   }
 }
+// Move modal to body so it escapes .main stacking context (fixes backdrop blocking clicks)
+document.addEventListener('DOMContentLoaded', () => {
+  const m = document.getElementById('profileModal');
+  if (m) document.body.appendChild(m);
+});
 </script>
 {% endblock %}
