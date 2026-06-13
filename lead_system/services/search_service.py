@@ -96,7 +96,7 @@ def run_search(keywords: list, platform: str, region: str) -> list:
         from concurrent.futures import wait as cf_wait
         ex = ThreadPoolExecutor(max_workers=min(len(tasks), 8))
         futures = [ex.submit(_safe, fn, *args) for fn, *args in tasks]
-        done, _ = cf_wait(futures, timeout=22)
+        done, _ = cf_wait(futures, timeout=45)
         ex.shutdown(wait=False, cancel_futures=True)
         for f in done:
             try:
@@ -118,7 +118,7 @@ def run_search(keywords: list, platform: str, region: str) -> list:
 
     # Deep enrich ALL combined results — visit pages to extract missing phones/emails
     # Runs across every source (DDG, Bing, Serper, Maps, LinkedIn, etc.), not just SerpAPI
-    unique = enrich_results(unique, keywords, max_enrich=30)
+    unique = enrich_results(unique, keywords, max_enrich=50)
 
     # Score and sort (highest score first)
     for r in unique:
