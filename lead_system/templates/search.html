@@ -706,7 +706,13 @@ async function runSearch() {
 
     let data;
     try { data = await resp.json(); }
-    catch(_) { data = {status:'error', message:'Server returned an unexpected response. Try again.'}; }
+    catch(_) {
+      const txt = await resp.text().catch(() => '');
+      const hint = resp.status === 502 || resp.status === 504
+        ? 'Server timeout (502/504). Try again in a moment.'
+        : `HTTP ${resp.status} — ${txt.substring(0,80)}`;
+      data = {status:'error', message: hint};
+    }
 
     if (data.status === 'ok') {
       log(`Scan complete — ${data.count} results found`, 'ok');
