@@ -82,14 +82,11 @@ def run_search(keywords: list, platform: str, region: str) -> list:
         if any(k and k != "YOUR_API_KEY_HERE" for k in SERP_API_KEYS):
             tasks.append((search_serpapi,       query, platform, region, keywords))
         tasks.append((search_serper,            query, platform, region, keywords))
-        tasks.append((search_duckduckgo,        query, platform, region, keywords))
         tasks.append((search_bing,              query, platform, region, keywords))
         if platform in ("all", "web", "directories", "marketplace"):
             tasks.append((search_google_places, query, platform, region, keywords))
         if platform in ("all", "web", "directories", "maps"):
             tasks.append((search_serper_maps,   query, platform, region, keywords))
-        if platform in ("all", "social", "linkedin"):
-            tasks.append((search_linkedin_deep, query, platform, region, keywords))
 
     results = []
     if tasks:
