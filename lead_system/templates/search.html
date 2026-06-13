@@ -690,12 +690,23 @@ async function runSearch() {
   log('Connecting to public data sources…');
 
   try {
-    const resp = await fetch('/search/run', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ keywords: tags, platform, region })
-    });
-    const data = await resp.json();
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 28000);
+    let resp;
+    try {
+      resp = await fetch('/search/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keywords: tags, platform, region }),
+        signal: controller.signal
+      });
+    } finally {
+      clearTimeout(timer);
+    }
+
+    let data;
+    try { data = await resp.json(); }
+    catch(_) { data = {status:'error', message:'Server returned an unexpected response. Try again.'}; }
 
     if (data.status === 'ok') {
       log(`Scan complete — ${data.count} results found`, 'ok');
@@ -712,7 +723,10 @@ async function runSearch() {
       btn.disabled = false; btn.innerHTML = '<i class="bi bi-play-fill me-1"></i> Run Search';
     }
   } catch(e) {
-    log('Network error: ' + e.message, 'err');
+    const msg = e.name === 'AbortError'
+      ? 'Search timed out (server took too long). Try fewer keywords or a smaller region.'
+      : 'Network error: ' + e.message;
+    log(msg, 'err');
     btn.disabled = false; btn.innerHTML = '<i class="bi bi-play-fill me-1"></i> Run Search';
   }
 }
