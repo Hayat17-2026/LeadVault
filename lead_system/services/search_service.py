@@ -63,7 +63,7 @@ def run_search(keywords: list, platform: str, region: str) -> list:
     Step 1 — Research Module
     Searches EACH keyword across all sources IN PARALLEL so total time = slowest source, not sum.
     """
-    from concurrent.futures import ThreadPoolExecutor, as_completed
+    from concurrent.futures import ThreadPoolExecutor
 
     def _safe(fn, *args):
         try:
@@ -92,9 +92,13 @@ def run_search(keywords: list, platform: str, region: str) -> list:
             tasks.append((search_linkedin_deep, query, platform, region, keywords))
 
     results = []
-    with ThreadPoolExecutor(max_workers=min(len(tasks), 8)) as ex:
+    if tasks:
+        from concurrent.futures import wait as cf_wait
+        ex = ThreadPoolExecutor(max_workers=min(len(tasks), 8))
         futures = [ex.submit(_safe, fn, *args) for fn, *args in tasks]
-        for f in as_completed(futures):
+        done, _ = cf_wait(futures, timeout=18)
+        ex.shutdown(wait=False, cancel_futures=True)
+        for f in done:
             try:
                 results.extend(f.result())
             except Exception:
