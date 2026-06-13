@@ -329,12 +329,51 @@
     .card:nth-child(4) { animation-delay:165ms; }
     .card:nth-child(5) { animation-delay:220ms; }
     .card:nth-child(6) { animation-delay:275ms; }
+
+    /* ══ MOBILE RESPONSIVE ══ */
+    .hamburger-btn {
+      display:none; background:rgba(124,58,237,.08); border:1px solid rgba(124,58,237,.25);
+      color:#7c3aed; border-radius:8px; width:34px; height:34px;
+      align-items:center; justify-content:center; cursor:pointer; font-size:18px;
+      transition:all .2s; flex-shrink:0; margin-right:10px;
+    }
+    .hamburger-btn:hover { background:rgba(124,58,237,.18); }
+    .sidebar-overlay {
+      display:none; position:fixed; inset:0;
+      background:rgba(0,0,0,.45); z-index:99;
+    }
+    .sidebar-overlay.active { display:block; }
+
+    @media (max-width:767px) {
+      .sidebar {
+        transform:translateX(-100%);
+        transition:transform .28s cubic-bezier(.4,0,.2,1);
+        z-index:200;
+      }
+      .sidebar.open { transform:translateX(0); }
+      .main { margin-left:0 !important; }
+      .hamburger-btn { display:flex; }
+      .topbar { padding:10px 14px; gap:8px; }
+      .topbar h4 { font-size:14px; }
+      .topbar small { display:none; }
+      .content { padding:14px; }
+      .pipeline { overflow-x:auto; flex-wrap:nowrap; -webkit-overflow-scrolling:touch; }
+      .pipeline-step { min-width:130px; font-size:12px; padding:10px 10px; }
+      .chat-window { right:8px; left:8px; width:auto; bottom:86px; height:460px; }
+      .chat-fab { bottom:16px; right:16px; width:52px; height:52px; }
+      #clock { display:none; }
+      .stat-card .value { font-size:22px; }
+      .row.g-3 > [class*="col-"] { padding-left:8px; padding-right:8px; }
+    }
   </style>
 </head>
 <body>
 
+<!-- Mobile sidebar overlay -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
 <!-- Sidebar -->
-<div class="sidebar">
+<div class="sidebar" id="sidebar">
   <div class="sidebar-brand">
     <h5><i class="bi bi-safe2-fill me-2" style="color:var(--sky)"></i>LeadVault</h5>
     <small>AI LEAD INTELLIGENCE</small>
@@ -391,6 +430,9 @@
 <!-- Main content -->
 <div class="main">
   <div class="topbar">
+    <button class="hamburger-btn" onclick="openSidebar()" aria-label="Open menu">
+      <i class="bi bi-list"></i>
+    </button>
     <div>
       <h4>{% block page_title %}Dashboard{% endblock %}</h4>
       <small>{% block page_sub %}AI-Based Public Lead Collection System{% endblock %}</small>
@@ -413,6 +455,22 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+  // Mobile sidebar
+  function openSidebar() {
+    document.getElementById('sidebar').classList.add('open');
+    document.getElementById('sidebarOverlay').classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeSidebar() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebarOverlay').classList.remove('active');
+    document.body.style.overflow = '';
+  }
+  // Close sidebar on nav link click (mobile)
+  document.querySelectorAll('.sidebar a').forEach(a => {
+    a.addEventListener('click', () => { if(window.innerWidth <= 767) closeSidebar(); });
+  });
+
   // Dark/Light mode toggle
   function toggleTheme() {
     const isDark = document.documentElement.classList.toggle('dark');
