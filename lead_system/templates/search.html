@@ -331,13 +331,7 @@ function scoreTooltip(r) {
   return parts.join(' · ');
 }
 
-function initTooltips() {
-  document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
-    const existing = bootstrap.Tooltip.getInstance(el);
-    if (existing) existing.dispose();
-    new bootstrap.Tooltip(el, { trigger: 'hover', placement: 'left' });
-  });
-}
+function initTooltips() { /* removed — using native title tooltips instead */ }
 
 let lastResults = [];
 
@@ -359,7 +353,7 @@ function buildCard(r, i) {
           <div class="mt-1" style="font-size:12px; color:var(--muted);">${r.interests || ''}</div>
         </div>
         <div class="text-end">
-          <span class="score-badge ${scoreClass(r.score)} d-block mb-1" data-bs-toggle="tooltip" data-bs-placement="left" title="${scoreTooltip(r)}" style="cursor:help;">${r.score}</span>
+          <span class="score-badge ${scoreClass(r.score)} d-block mb-1" title="${scoreTooltip(r)}" style="cursor:help;">${r.score}</span>
           <button class="btn btn-sm btn-outline-success" id="qbtn_${i}" onclick="queueLead(${i}, ${JSON.stringify(r).replace(/"/g,'&quot;')})">
             <i class="bi bi-plus"></i> Queue
           </button>
