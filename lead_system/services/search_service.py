@@ -61,68 +61,44 @@ INTEREST_KEYWORDS = {
 def run_search(keywords: list, platform: str, region: str) -> list:
     """
     Step 1 — Research Module
-    Searches EACH keyword separately across 3 engines, then combines.
-    More keywords = many more results.
+    Searches EACH keyword across all sources IN PARALLEL so total time = slowest source, not sum.
     """
-    results = []
+    from concurrent.futures import ThreadPoolExecutor, as_completed
 
-    # Search each keyword separately (multiplies the result count)
+    def _safe(fn, *args):
+        try:
+            return fn(*args)
+        except Exception as e:
+            print(f"[search_service] {fn.__name__} failed: {e}")
+            return []
+
+    tasks = []
     for kw in keywords:
         query = kw.strip()
         if not query:
             continue
         print(f"[search_service] === Searching keyword: {query} ===")
 
-        # Source 1 — SerpAPI (real Google results, supports multiple keys)
         if any(k and k != "YOUR_API_KEY_HERE" for k in SERP_API_KEYS):
-            try:
-                results += search_serpapi(query, platform, region, keywords)
-            except Exception as e:
-                print(f"[search_service] SerpAPI failed: {e}")
-
-        # Source 1b — Serper.dev (real Google API, free 2,500/month)
-        try:
-            results += search_serper(query, platform, region, keywords)
-        except Exception as e:
-            print(f"[search_service] Serper failed: {e}")
-
-        # Source 2 — DuckDuckGo (free)
-        try:
-            results += search_duckduckgo(query, platform, region, keywords)
-        except Exception as e:
-            print(f"[search_service] DuckDuckGo failed: {e}")
-
-        # Source 3 — Bing (free, independent)
-        try:
-            results += search_bing(query, platform, region, keywords)
-        except Exception as e:
-            print(f"[search_service] Bing failed: {e}")
-
-        # Source 4 — Google Places API (real businesses, only for web/all/directories)
+            tasks.append((search_serpapi,       query, platform, region, keywords))
+        tasks.append((search_serper,            query, platform, region, keywords))
+        tasks.append((search_duckduckgo,        query, platform, region, keywords))
+        tasks.append((search_bing,              query, platform, region, keywords))
         if platform in ("all", "web", "directories", "marketplace"):
-            try:
-                results += search_google_places(query, platform, region, keywords)
-            except Exception as e:
-                print(f"[search_service] Google Places failed: {e}")
-
-        # Source 5 — Serper Maps (Google Maps business listings via Serper /maps)
+            tasks.append((search_google_places, query, platform, region, keywords))
         if platform in ("all", "web", "directories", "maps"):
-            try:
-                results += search_serper_maps(query, platform, region, keywords)
-            except Exception as e:
-                print(f"[search_service] Serper Maps failed: {e}")
-
-        # Source 6 — LinkedIn Deep (dedicated LinkedIn profile/company targeted search)
+            tasks.append((search_serper_maps,   query, platform, region, keywords))
         if platform in ("all", "social", "linkedin"):
-            try:
-                results += search_linkedin_deep(query, platform, region, keywords)
-            except Exception as e:
-                print(f"[search_service] LinkedIn Deep failed: {e}")
+            tasks.append((search_linkedin_deep, query, platform, region, keywords))
 
-        # NOTE: Additional directory sources (Yelp, Kompass, etc.) are available
-        # via the dedicated functions, but are disabled in the combined search to
-        # avoid rate-limiting. The 3 independent engines above (Google, DuckDuckGo,
-        # Bing) provide reliable, fast results.
+    results = []
+    with ThreadPoolExecutor(max_workers=min(len(tasks), 8)) as ex:
+        futures = [ex.submit(_safe, fn, *args) for fn, *args in tasks]
+        for f in as_completed(futures):
+            try:
+                results.extend(f.result())
+            except Exception:
+                pass
 
     # Final fallback — demo data only if nothing found at all
     if not results:
