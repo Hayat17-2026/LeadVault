@@ -118,7 +118,7 @@ def run_search(keywords: list, platform: str, region: str) -> list:
 
     # Deep enrich ALL combined results — visit pages to extract missing phones/emails
     # Runs across every source (DDG, Bing, Serper, Maps, LinkedIn, etc.), not just SerpAPI
-    unique = enrich_results(unique, keywords, max_enrich=10)
+    unique = enrich_results(unique, keywords, max_enrich=30)
 
     # Score and sort (highest score first)
     for r in unique:
@@ -199,7 +199,7 @@ def search_serpapi(query: str, platform: str, region: str, keywords: list) -> li
                 "num":     "100",
             }
             try:
-                resp = requests.get("https://serpapi.com/search", params=params, timeout=7)
+                resp = requests.get("https://serpapi.com/search", params=params, timeout=10)
                 data = resp.json()
             except Exception as e:
                 print(f"[SerpAPI] request failed: {e}")
@@ -279,7 +279,7 @@ def search_duckduckgo(query: str, platform: str, region: str, keywords: list) ->
         for offset in range(0, 150, 30):
             encoded = urllib.parse.quote(full_query)
             url     = f"https://html.duckduckgo.com/html/?q={encoded}&s={offset}"
-            resp = requests.get(url, headers=HEADERS, timeout=7)
+            resp = requests.get(url, headers=HEADERS, timeout=10)
             if resp.status_code != 200:
                 break
             soup = BeautifulSoup(resp.text, "html.parser")
@@ -364,7 +364,7 @@ def search_serper(query, platform, region, keywords):
                     "https://google.serper.dev/search",
                     headers={"X-API-KEY": SERPER_API_KEY, "Content-Type": "application/json"},
                     json={"q": vquery, "num": 100, "page": page},
-                    timeout=7
+                    timeout=10
                 )
                 if resp.status_code != 200:
                     print(f"[Serper] HTTP {resp.status_code}: {resp.text[:120]}")
@@ -432,7 +432,7 @@ def search_bing(query, platform, region, keywords):
             for first in [1, 11, 21, 31, 41]:   # Bing pagination
                 encoded = urllib.parse.quote(q)
                 url = f"https://www.bing.com/search?q={encoded}&first={first}"
-                resp = requests.get(url, headers=HEADERS, timeout=7)
+                resp = requests.get(url, headers=HEADERS, timeout=10)
                 if resp.status_code != 200:
                     break
                 soup = BeautifulSoup(resp.text, "html.parser")
@@ -491,7 +491,7 @@ def _scrape_directory(base_url, query, region, keywords, source_name):
         q = f"{query} {loc} {source_name}"
         encoded = urllib.parse.quote(q)
         url = f"https://html.duckduckgo.com/html/?q={encoded}"
-        resp = requests.get(url, headers=HEADERS, timeout=7)
+        resp = requests.get(url, headers=HEADERS, timeout=10)
         if resp.status_code == 200:
             soup = BeautifulSoup(resp.text, "html.parser")
             for r in soup.select(".result__body"):
@@ -549,7 +549,7 @@ def search_google_places(query, platform, region, keywords):
             resp = requests.get(
                 "https://maps.googleapis.com/maps/api/place/textsearch/json",
                 params={"query": search_text, "key": GOOGLE_PLACES_KEY},
-                timeout=7
+                timeout=10
             )
             data = resp.json()
             if data.get("status") not in ("OK", "ZERO_RESULTS"):
@@ -571,7 +571,7 @@ def search_google_places(query, platform, region, keywords):
                         "https://maps.googleapis.com/maps/api/place/details/json",
                         params={"place_id": pid, "fields": "formatted_phone_number,website",
                                 "key": GOOGLE_PLACES_KEY},
-                        timeout=7
+                        timeout=10
                     ).json()
                     phone = det.get("result", {}).get("formatted_phone_number", "")
                     website = det.get("result", {}).get("website", "")
@@ -623,7 +623,7 @@ def search_serper_maps(query, platform, region, keywords):
                 "https://google.serper.dev/maps",
                 headers={"X-API-KEY": SERPER_API_KEY, "Content-Type": "application/json"},
                 json={"q": search_q, "num": 20},
-                timeout=7
+                timeout=10
             )
             if resp.status_code != 200:
                 print(f"[Serper Maps] HTTP {resp.status_code}: {resp.text[:80]}")
@@ -690,7 +690,7 @@ def search_linkedin_deep(query, platform, region, keywords):
             encoded = urllib.parse.quote(q)
             resp = requests.get(
                 f"https://html.duckduckgo.com/html/?q={encoded}",
-                headers=HEADERS, timeout=7
+                headers=HEADERS, timeout=10
             )
             if resp.status_code != 200:
                 continue
@@ -731,7 +731,7 @@ def search_linkedin_deep(query, platform, region, keywords):
             encoded = urllib.parse.quote(q)
             resp = requests.get(
                 f"https://www.bing.com/search?q={encoded}&first=1",
-                headers=HEADERS, timeout=7
+                headers=HEADERS, timeout=10
             )
             if resp.status_code != 200:
                 continue
