@@ -691,7 +691,7 @@ async function runSearch() {
 
   try {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 28000);
+    const timer = setTimeout(() => controller.abort(), 55000);
     let resp;
     try {
       resp = await fetch('/search/run', {
