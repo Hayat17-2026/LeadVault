@@ -118,7 +118,7 @@ def run_search(keywords: list, platform: str, region: str) -> list:
 
     # Deep enrich ALL combined results — visit pages to extract missing phones/emails
     # Runs across every source (DDG, Bing, Serper, Maps, LinkedIn, etc.), not just SerpAPI
-    unique = enrich_results(unique, keywords, max_enrich=50)
+    unique = enrich_results(unique, keywords, max_enrich=15)
 
     # Score and sort (highest score first)
     for r in unique:
