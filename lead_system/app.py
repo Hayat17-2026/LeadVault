@@ -13,7 +13,7 @@ from routes.settings  import settings_bp
 from database.db      import init_db
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", os.urandom(24))
+app.secret_key = os.environ.get("SECRET_KEY", "leadvault-fyp-2026-secret-key")
 
 # Security headers on every response
 @app.after_request
