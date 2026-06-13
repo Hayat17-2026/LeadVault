@@ -551,7 +551,7 @@ function openProfile(i) {
     saveBtn.disabled   = false;
   }
 
-  new bootstrap.Modal(document.getElementById('profileModal')).show();
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('profileModal')).show();
 }
 
 function saveModalNote() {
