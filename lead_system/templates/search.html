@@ -306,6 +306,7 @@
 <script>
 let tags = [];
 let queuedCount = 0;
+let lastResults = [];
 
 function renderTags() {
   document.getElementById('tagBox').innerHTML = tags.map((t,i) =>
@@ -393,8 +394,6 @@ function scoreTooltip(r) {
 }
 
 function initTooltips() { /* removed — using native title tooltips instead */ }
-
-let lastResults = [];
 
 function buildCard(r, i) {
   return `
@@ -836,7 +835,7 @@ async function loadReviews(url) {
 }
 async function submitReview() {
   if (!_currentRating) { alert('Please select a star rating first'); return; }
-  const r = currentResults[currentProfileIdx];
+  const r = activeLeadData;
   const comment = document.getElementById('reviewComment').value.trim();
   const resp = await fetch('/leads/add-review', {
     method:'POST', headers:{'Content-Type':'application/json'},
@@ -859,7 +858,7 @@ async function submitReview() {
 
 // ── CLAIM VISIT / COMMISSION ─────────────────────────────────────────────
 async function claimVisit() {
-  const r = currentResults[currentProfileIdx];
+  const r = activeLeadData;
   const resp = await fetch('/leads/claim-visit', {
     method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({ lead_url: r.source_url, lead_name: r.name })
