@@ -1,5 +1,5 @@
 from services.auth_service import login_required, rate_limited
-from flask import Blueprint, render_template, jsonify
+from flask import Blueprint, render_template, jsonify, session
 from database.db import get_db
 
 dashboard_bp = Blueprint("dashboard", __name__)
@@ -8,13 +8,52 @@ dashboard_bp = Blueprint("dashboard", __name__)
 @login_required
 @rate_limited
 def index():
-    db = get_db()
+    db       = get_db()
+    role     = session.get("role", "user")
+    username = session.get("username", "")
+
+    if role == "user":
+        # Personal stats for regular users
+        total_earned = db.execute(
+            "SELECT COALESCE(SUM(commission_amount),0) FROM lead_referrals WHERE username=? AND status='approved'",
+            (username,)
+        ).fetchone()[0]
+        pending  = db.execute(
+            "SELECT COUNT(*) FROM lead_referrals WHERE username=? AND status='pending'", (username,)
+        ).fetchone()[0]
+        approved = db.execute(
+            "SELECT COUNT(*) FROM lead_referrals WHERE username=? AND status='approved'", (username,)
+        ).fetchone()[0]
+        reviews  = db.execute(
+            "SELECT COUNT(*) FROM lead_reviews WHERE username=?", (username,)
+        ).fetchone()[0]
+        recent_claims = db.execute(
+            "SELECT lead_name, status, commission_amount, created_at FROM lead_referrals "
+            "WHERE username=? ORDER BY created_at DESC LIMIT 5", (username,)
+        ).fetchall()
+        recent_reviews = db.execute(
+            "SELECT lead_name, rating, comment, created_at FROM lead_reviews "
+            "WHERE username=? ORDER BY created_at DESC LIMIT 5", (username,)
+        ).fetchall()
+        db.close()
+        return render_template("dashboard.html",
+            user_dashboard=True,
+            total_earned=round(float(total_earned), 2),
+            pending_claims=pending,
+            approved_claims=approved,
+            total_reviews=reviews,
+            recent_claims=[dict(r) for r in recent_claims],
+            recent_reviews=[dict(r) for r in recent_reviews]
+        )
+
+    # Admin / Staff — system-wide stats
     total    = db.execute("SELECT COUNT(*) FROM leads").fetchone()[0]
     new      = db.execute("SELECT COUNT(*) FROM leads WHERE status='new'").fetchone()[0]
     searches = db.execute("SELECT COUNT(*) FROM search_logs").fetchone()[0]
     recent   = db.execute("SELECT * FROM leads ORDER BY created_at DESC LIMIT 5").fetchall()
     db.close()
     return render_template("dashboard.html",
+        user_dashboard=False,
         total=total, new=new, searches=searches,
         recent=[dict(r) for r in recent]
     )

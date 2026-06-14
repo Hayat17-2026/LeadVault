@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Dashboard — LeadVault{% endblock %}
 {% block page_title %}Dashboard{% endblock %}
-{% block page_sub %}Real-time analytics and system overview{% endblock %}
+{% block page_sub %}{% if user_dashboard %}Your personal earnings and activity{% else %}Real-time analytics and system overview{% endif %}{% endblock %}
 
 {% block content %}
 <style>
@@ -71,6 +71,141 @@
   .overview-bar small { color:rgba(255,255,255,.55); font-size:12px; }
 </style>
 
+{% if user_dashboard %}
+<!-- ══════════════════════════════════════════
+     USER PERSONAL DASHBOARD
+════════════════════════════════════════════ -->
+<div class="overview-bar">
+  <i class="bi bi-person-circle" style="font-size:20px; color:#a78bfa;"></i>
+  <div>
+    <h6>Welcome, {{ session.get('username','') | title }} 👋</h6>
+    <small>Your personal activity and earnings</small>
+  </div>
+  <span class="ai-chip ms-auto"><i class="bi bi-stars"></i> LeadVault User</span>
+</div>
+
+<!-- KPI Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="kpi-card green">
+      <div class="kpi-icon green"><i class="bi bi-cash-coin"></i></div>
+      <div class="kpi-value">${{ total_earned }}</div>
+      <div class="kpi-label">Total Earned</div>
+      <span class="kpi-trend up"><i class="bi bi-check-circle"></i> Approved</span>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="kpi-card orange">
+      <div class="kpi-icon orange"><i class="bi bi-hourglass-split"></i></div>
+      <div class="kpi-value">{{ pending_claims }}</div>
+      <div class="kpi-label">Pending Claims</div>
+      <span class="kpi-trend up"><i class="bi bi-clock"></i> Awaiting</span>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="kpi-card blue">
+      <div class="kpi-icon blue"><i class="bi bi-geo-alt-fill"></i></div>
+      <div class="kpi-value">{{ approved_claims }}</div>
+      <div class="kpi-label">Approved Visits</div>
+      <span class="kpi-trend up"><i class="bi bi-check2-all"></i> Confirmed</span>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="kpi-card purple">
+      <div class="kpi-icon purple"><i class="bi bi-star-fill"></i></div>
+      <div class="kpi-value">{{ total_reviews }}</div>
+      <div class="kpi-label">Reviews Written</div>
+      <span class="kpi-trend up"><i class="bi bi-chat-dots"></i> Community</span>
+    </div>
+  </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row g-3 mb-4">
+  <div class="col-12">
+    <div class="chart-card">
+      <div class="chart-title"><i class="bi bi-lightning-charge"></i> Quick Actions</div>
+      <div class="d-flex flex-wrap gap-2 mt-3">
+        <a href="/search/" class="btn btn-accent">
+          <i class="bi bi-search me-1"></i> Search Businesses
+        </a>
+        <a href="/leads/referrals-page" class="btn btn-outline-success">
+          <i class="bi bi-cash-coin me-1"></i> My Commissions
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Activity -->
+<div class="row g-3">
+  <!-- Recent Claims -->
+  <div class="col-md-6">
+    <div class="chart-card">
+      <div class="chart-title"><i class="bi bi-geo-alt"></i> Recent Visit Claims</div>
+      <div class="chart-sub">Your latest commission claims</div>
+      {% if recent_claims %}
+      <table class="table table-sm mb-0" style="font-size:13px;">
+        <thead><tr><th>Business</th><th>Status</th><th>Amount</th></tr></thead>
+        <tbody>
+          {% for c in recent_claims %}
+          <tr>
+            <td class="fw-semibold">{{ c.lead_name or 'Unknown' }}</td>
+            <td>
+              {% if c.status == 'approved' %}
+                <span class="badge bg-success">✅ Approved</span>
+              {% elif c.status == 'rejected' %}
+                <span class="badge bg-danger">❌ Rejected</span>
+              {% else %}
+                <span class="badge bg-warning">⏳ Pending</span>
+              {% endif %}
+            </td>
+            <td>{% if c.status == 'approved' %}<strong style="color:var(--green);">${{ c.commission_amount }}</strong>{% else %}—{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="text-center py-4" style="color:var(--muted); font-size:13px;">
+        <i class="bi bi-geo-alt" style="font-size:28px; opacity:.3; display:block; margin-bottom:8px;"></i>
+        No claims yet — search for a business and click "I Visited This Lead"
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Recent Reviews -->
+  <div class="col-md-6">
+    <div class="chart-card">
+      <div class="chart-title"><i class="bi bi-star"></i> Recent Reviews</div>
+      <div class="chart-sub">Reviews you submitted</div>
+      {% if recent_reviews %}
+      <table class="table table-sm mb-0" style="font-size:13px;">
+        <thead><tr><th>Business</th><th>Rating</th><th>Comment</th></tr></thead>
+        <tbody>
+          {% for r in recent_reviews %}
+          <tr>
+            <td class="fw-semibold">{{ r.lead_name or 'Unknown' }}</td>
+            <td style="color:#fbbf24;">{{ '⭐' * r.rating }}</td>
+            <td style="color:var(--muted);">{{ (r.comment or '')[:40] }}{% if r.comment and r.comment|length > 40 %}…{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="text-center py-4" style="color:var(--muted); font-size:13px;">
+        <i class="bi bi-star" style="font-size:28px; opacity:.3; display:block; margin-bottom:8px;"></i>
+        No reviews yet — open a lead profile and rate the business
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% else %}
+<!-- ══════════════════════════════════════════
+     ADMIN / STAFF SYSTEM DASHBOARD
+════════════════════════════════════════════ -->
 <!-- Overview header bar (this page is an overview, not a pipeline step) -->
 <div class="overview-bar">
   <i class="bi bi-grid-1x2" style="font-size:20px; color:#a78bfa;"></i>
@@ -175,9 +310,11 @@
     </div>
   </div>
 </div>
+{% endif %}
 {% endblock %}
 
 {% block scripts %}
+{% if not user_dashboard %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
 let platformChart, scoreChart, dailyChart, statusChart;
@@ -275,4 +412,5 @@ function renderStatusChart(status) {
 loadStats();
 setInterval(loadStats, 10000);
 </script>
+{% endif %}
 {% endblock %}
