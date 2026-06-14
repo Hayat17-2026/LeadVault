@@ -5,7 +5,8 @@ from services.auth_service import (
     generate_captcha, verify_captcha, add_user, delete_user, list_users, is_admin,
     generate_image_captcha,
     generate_letter_captcha, verify_letter_captcha,
-    resolve_username, get_user_role
+    resolve_username, get_user_role,
+    register_user, list_pending_registrations, approve_registration
 )
 
 auth_bp = Blueprint("auth", __name__)
@@ -229,3 +230,51 @@ def users_page():
     if not is_admin():
         return redirect(url_for("dashboard.index"))
     return render_template("users.html")
+
+
+# ── REGISTRATION (public self-signup) ────────────────────────────────────────
+@auth_bp.route("/register", methods=["GET"])
+def register_page():
+    if session.get("logged_in"):
+        return redirect(url_for("dashboard.index"))
+    return render_template("register.html")
+
+@auth_bp.route("/register", methods=["POST"])
+def do_register():
+    d = request.get_json(force=True)
+    username   = (d.get("username") or "").strip().lower()
+    password   = (d.get("password") or "").strip()
+    confirm    = (d.get("confirm") or "").strip()
+    email      = (d.get("email") or "").strip()
+    full_name  = (d.get("full_name") or "").strip()
+    security_q = (d.get("security_q") or "").strip()
+    security_a = (d.get("security_a") or "").strip()
+
+    if password != confirm:
+        return jsonify({"status": "error", "message": "Passwords do not match"}), 400
+    if not email or "@" not in email:
+        return jsonify({"status": "error", "message": "Valid email is required"}), 400
+    if not security_a:
+        return jsonify({"status": "error", "message": "Security answer is required"}), 400
+
+    result = register_user(username, password, email, full_name, security_q, security_a)
+    code = 200 if result["status"] == "ok" else 400
+    return jsonify(result), code
+
+
+# ── PENDING REGISTRATIONS (admin only) ───────────────────────────────────────
+@auth_bp.route("/users/pending", methods=["GET"])
+def get_pending():
+    if not session.get("logged_in") or not is_admin():
+        return jsonify({"status": "error", "message": "Admin only"}), 403
+    return jsonify({"status": "ok", "pending": list_pending_registrations()})
+
+@auth_bp.route("/users/approve-reg", methods=["POST"])
+def approve_reg():
+    if not session.get("logged_in") or not is_admin():
+        return jsonify({"status": "error", "message": "Admin only"}), 403
+    d      = request.get_json(force=True)
+    uid    = d.get("id")
+    action = d.get("action", "approve")
+    result = approve_registration(uid, action)
+    return jsonify(result)

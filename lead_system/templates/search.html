@@ -240,6 +240,7 @@
             <input type="text" id="reviewComment" class="form-control form-control-sm" placeholder="Write a short review…" style="font-size:12px;">
             <button class="btn btn-sm btn-accent" onclick="submitReview()" style="white-space:nowrap; font-size:12px;">Submit</button>
           </div>
+          <div id="reviewMsg" style="font-size:12px; margin-top:6px;"></div>
         </div>
 
         <!-- 💰 I Visited This -->
@@ -611,6 +612,7 @@ function openProfile(i) {
   document.getElementById('ratingLabel').textContent = 'Click to rate';
   document.getElementById('reviewComment').value = '';
   document.getElementById('visitMsg').innerHTML = '';
+  document.getElementById('reviewMsg').innerHTML = '';
   document.getElementById('visitBtn').disabled = false;
   document.getElementById('visitBtn').innerHTML = '<i class="bi bi-geo-alt-fill me-1"></i>I Visited This Lead';
   if (r.source_url) loadReviews(r.source_url);
@@ -841,7 +843,18 @@ async function submitReview() {
     body: JSON.stringify({ lead_url: r.source_url, lead_name: r.name, rating: _currentRating, comment })
   });
   const d = await resp.json();
-  if (d.status === 'ok') { loadReviews(r.source_url); alert('Review submitted! ⭐'); }
+  const msg = document.getElementById('reviewMsg');
+  if (d.status === 'ok') {
+    loadReviews(r.source_url);
+    _currentRating = 0;
+    document.querySelectorAll('#starRating span').forEach(s => s.textContent = '☆');
+    document.getElementById('ratingLabel').textContent = 'Click to rate';
+    document.getElementById('reviewComment').value = '';
+    msg.innerHTML = '<span style="color:#34d399;"><i class="bi bi-check-circle me-1"></i>Review submitted! Thank you ⭐</span>';
+    setTimeout(() => { msg.innerHTML = ''; }, 4000);
+  } else {
+    msg.innerHTML = `<span style="color:#f87171;"><i class="bi bi-x-circle me-1"></i>${d.message || 'Could not submit review'}</span>`;
+  }
 }
 
 // ── CLAIM VISIT / COMMISSION ─────────────────────────────────────────────

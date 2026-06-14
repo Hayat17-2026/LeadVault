@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>LeadVault — Create Account</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+    body {
+      min-height:100vh; display:flex; flex-direction:column;
+      background:#f5f3ff; font-family:'Inter',sans-serif;
+      overflow-x:hidden; position:relative;
+    }
+    .orb { position:fixed; border-radius:50%; filter:blur(110px); opacity:.55; pointer-events:none; z-index:0; animation:orbFloat 14s ease-in-out infinite; }
+    .orb-a { width:700px;height:700px;top:-200px;left:-150px;background:radial-gradient(circle,rgba(124,58,237,.18),transparent 65%);animation-duration:16s; }
+    .orb-b { width:500px;height:500px;bottom:-150px;right:-100px;background:radial-gradient(circle,rgba(96,165,250,.14),transparent 65%);animation-duration:11s;animation-delay:-5s; }
+    .orb-c { width:380px;height:380px;top:40%;left:50%;background:radial-gradient(circle,rgba(139,92,246,.12),transparent 65%);animation-duration:18s;animation-delay:-9s; }
+    @keyframes orbFloat { 0%,100%{transform:translate(0,0) scale(1);}33%{transform:translate(28px,-22px) scale(1.04);}66%{transform:translate(-18px,30px) scale(.97);} }
+    body::before { content:'';position:fixed;inset:0;z-index:0;pointer-events:none;background-image:linear-gradient(rgba(167,139,250,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(167,139,250,.04) 1px,transparent 1px);background-size:54px 54px; }
+
+    .lv-topbar { position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:24px 40px 10px; }
+    .lv-brand { display:flex;align-items:center;gap:14px; }
+    .lv-brand-icon { width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,#7c3aed,#3b82f6);display:flex;align-items:center;justify-content:center;box-shadow:0 6px 24px rgba(124,58,237,.45);flex-shrink:0; }
+    .lv-brand-icon i { color:#fff;font-size:24px; }
+    .lv-brand-text h2 { font-family:'Sora',sans-serif;font-size:20px;font-weight:800;color:#111827;margin:0; }
+    .lv-brand-text .tagline { font-size:10px;font-weight:700;letter-spacing:2px;background:linear-gradient(90deg,#a78bfa,#60a5fa);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent; }
+
+    .reg-center { flex:1;display:flex;align-items:center;justify-content:center;padding:16px 20px 44px;position:relative;z-index:10; }
+    .reg-card { width:100%;max-width:500px;background:#ffffff;border:1px solid rgba(124,58,237,.14);border-radius:20px;padding:36px 44px;box-shadow:0 16px 56px rgba(124,58,237,.14),0 0 0 1px rgba(124,58,237,.06);animation:cardIn .5s cubic-bezier(.22,1,.36,1); }
+    @keyframes cardIn { from{opacity:0;transform:translateY(26px);}to{opacity:1;transform:translateY(0);} }
+
+    .card-heading { text-align:center;margin-bottom:8px; }
+    .card-heading h3 { font-family:'Sora',sans-serif;font-size:22px;font-weight:800;color:#111827;margin-bottom:6px; }
+    .card-heading p { font-size:13px;color:#6b7280; }
+    .card-divider { width:44px;height:3px;border-radius:2px;background:linear-gradient(90deg,#7c3aed,#3b82f6);margin:12px auto 24px; }
+
+    .fg { margin-bottom:12px; }
+    .fg label { display:block;font-size:11px;font-weight:600;color:#7c3aed;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px; }
+    .iw { position:relative; }
+    .iw .fi { position:absolute;left:12px;top:50%;transform:translateY(-50%);color:rgba(124,58,237,.45);font-size:14px;pointer-events:none; }
+    .fc { width:100%;padding:11px 12px 11px 38px;background:#f5f3ff;border:1.5px solid rgba(124,58,237,.2);border-radius:10px;font-size:14px;color:#111827;font-family:'Inter',sans-serif;transition:all .18s;outline:none; }
+    .fc:focus { border-color:#7c3aed;background:#ffffff;box-shadow:0 0 0 3px rgba(124,58,237,.1); }
+    .fc::placeholder { color:#9ca3af; }
+    .fc option { background:#ffffff;color:#111827; }
+
+    .btn-go { width:100%;padding:13px;background:linear-gradient(135deg,#7c3aed,#3b82f6);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;box-shadow:0 4px 18px rgba(124,58,237,.45);display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s;margin-top:8px;position:relative;overflow:hidden; }
+    .btn-go:hover { transform:translateY(-1px);box-shadow:0 7px 26px rgba(124,58,237,.6); }
+    .btn-go:disabled { opacity:.6;cursor:not-allowed;transform:none; }
+
+    .err-box { background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#f87171;border-radius:8px;padding:10px 12px;font-size:13px;margin-bottom:12px;display:none;align-items:center;gap:8px; }
+    .ok-box  { background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);color:#34d399;border-radius:8px;padding:16px;font-size:14px;text-align:center;display:none; }
+
+    .fp-link { text-align:center;margin-top:16px;font-size:12px; }
+    .fp-link a { color:#9ca3af;text-decoration:none; }
+    .fp-link a:hover { color:#7c3aed; }
+    .card-footer-note { text-align:center;margin-top:20px;padding-top:14px;border-top:1px solid rgba(124,58,237,.1);font-size:10px;color:#9ca3af; }
+
+    @media (max-width:500px) { .lv-topbar{padding:18px 20px 8px;} .reg-card{padding:28px 20px;} }
+  </style>
+</head>
+<body>
+  <div class="orb orb-a"></div>
+  <div class="orb orb-b"></div>
+  <div class="orb orb-c"></div>
+
+  <div class="lv-topbar">
+    <div class="lv-brand">
+      <div class="lv-brand-icon"><i class="bi bi-safe2-fill"></i></div>
+      <div class="lv-brand-text">
+        <h2 style="color:#111827;">LeadVault</h2>
+        <span class="tagline">AI LEAD INTELLIGENCE</span>
+      </div>
+    </div>
+    <a href="/login" style="font-size:13px;color:#7c3aed;text-decoration:none;font-weight:600;">
+      <i class="bi bi-box-arrow-in-right me-1"></i>Sign In
+    </a>
+  </div>
+
+  <div class="reg-center">
+    <div class="reg-card">
+
+      <!-- Form view -->
+      <div id="formView">
+        <div class="card-heading">
+          <h3>Create Account</h3>
+          <p>Request access to LeadVault — an admin will approve</p>
+        </div>
+        <div class="card-divider"></div>
+
+        <div class="err-box" id="errBox"><i class="bi bi-exclamation-circle"></i><span id="errText"></span></div>
+
+        <div class="row g-2">
+          <div class="col-md-6">
+            <div class="fg">
+              <label>Full Name</label>
+              <div class="iw"><i class="bi bi-person-circle fi"></i>
+                <input class="fc" id="fullName" placeholder="Your full name" autocomplete="name"/>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="fg">
+              <label>Username</label>
+              <div class="iw"><i class="bi bi-at fi"></i>
+                <input class="fc" id="username" placeholder="e.g. sara2025" autocomplete="username"/>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="fg">
+          <label>Email</label>
+          <div class="iw"><i class="bi bi-envelope fi"></i>
+            <input class="fc" id="email" type="email" placeholder="your@email.com" autocomplete="email"/>
+          </div>
+        </div>
+
+        <div class="row g-2">
+          <div class="col-md-6">
+            <div class="fg">
+              <label>Password</label>
+              <div class="iw"><i class="bi bi-lock fi"></i>
+                <input class="fc" id="password" type="password" placeholder="8+ chars, number, symbol" autocomplete="new-password"/>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="fg">
+              <label>Confirm Password</label>
+              <div class="iw"><i class="bi bi-lock-fill fi"></i>
+                <input class="fc" id="confirm" type="password" placeholder="Re-enter password" autocomplete="new-password"/>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="fg">
+          <label>Security Question</label>
+          <div class="iw"><i class="bi bi-shield-lock fi"></i>
+            <select class="fc" id="securityQ">
+              <option value="What is your favorite color?">What is your favorite color?</option>
+              <option value="What city were you born in?">What city were you born in?</option>
+              <option value="What is your mother's maiden name?">What is your mother's maiden name?</option>
+              <option value="What was your first pet's name?">What was your first pet's name?</option>
+              <option value="What is your favorite sports team?">What is your favorite sports team?</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="fg">
+          <label>Security Answer</label>
+          <div class="iw"><i class="bi bi-key fi"></i>
+            <input class="fc" id="securityA" placeholder="Answer to your security question" autocomplete="off"/>
+          </div>
+          <small style="font-size:11px;color:#94a3b8;margin-top:4px;display:block;">Used to recover your account if you forget your password</small>
+        </div>
+
+        <button class="btn-go" id="regBtn" onclick="doRegister()">
+          <i class="bi bi-person-plus"></i> Request Access
+        </button>
+
+        <div class="fp-link">
+          <a href="/login"><i class="bi bi-arrow-left me-1"></i>Already have an account? Sign in</a>
+        </div>
+      </div>
+
+      <!-- Success view -->
+      <div id="successView" style="display:none; text-align:center; padding:20px 0;">
+        <div style="font-size:60px; margin-bottom:16px;">✅</div>
+        <h4 style="font-family:'Sora',sans-serif; color:#111827; margin-bottom:8px;">Request Submitted!</h4>
+        <p style="font-size:14px; color:#6b7280; margin-bottom:20px; line-height:1.6;">
+          Your account request has been sent to the admin for review.<br>
+          You'll be able to log in once it's approved.
+        </p>
+        <a href="/login" class="btn-go" style="text-decoration:none; display:inline-flex; width:auto; padding:12px 28px;">
+          <i class="bi bi-box-arrow-in-right me-2"></i>Back to Login
+        </a>
+      </div>
+
+      <div class="card-footer-note">
+        LeadVault &copy; 2025 &nbsp;·&nbsp; Islamic University of Lebanon &nbsp;·&nbsp; CCE FYP
+      </div>
+    </div>
+  </div>
+
+<script>
+async function doRegister() {
+  const btn = document.getElementById('regBtn');
+  const errBox = document.getElementById('errBox');
+  errBox.style.display = 'none';
+
+  const data = {
+    full_name:  document.getElementById('fullName').value.trim(),
+    username:   document.getElementById('username').value.trim(),
+    email:      document.getElementById('email').value.trim(),
+    password:   document.getElementById('password').value,
+    confirm:    document.getElementById('confirm').value,
+    security_q: document.getElementById('securityQ').value,
+    security_a: document.getElementById('securityA').value.trim()
+  };
+
+  if (!data.username) { showErr('Username is required'); return; }
+  if (!data.email)    { showErr('Email is required'); return; }
+  if (!data.password) { showErr('Password is required'); return; }
+  if (data.password !== data.confirm) { showErr('Passwords do not match'); return; }
+  if (!data.security_a) { showErr('Security answer is required'); return; }
+
+  btn.disabled = true;
+  btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Submitting…';
+
+  try {
+    const r = await fetch('/register', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(data)
+    });
+    const d = await r.json();
+    if (d.status === 'ok') {
+      document.getElementById('formView').style.display = 'none';
+      document.getElementById('successView').style.display = 'block';
+    } else {
+      showErr(d.message || 'Registration failed');
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-person-plus"></i> Request Access';
+    }
+  } catch(e) {
+    showErr('Connection error — please try again');
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-person-plus"></i> Request Access';
+  }
+}
+
+function showErr(msg) {
+  const box = document.getElementById('errBox');
+  document.getElementById('errText').textContent = msg;
+  box.style.display = 'flex';
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter') doRegister();
+});
+</script>
+</body>
+</html>

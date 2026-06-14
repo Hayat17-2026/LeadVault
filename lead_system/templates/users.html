@@ -94,6 +94,21 @@
     </div>
   </div>
 </div>
+
+<!-- Pending Registrations -->
+<div class="card mt-4" id="pendingSection">
+  <div class="card-header d-flex justify-content-between align-items-center"
+    style="background:linear-gradient(135deg,rgba(124,58,237,.12),rgba(124,58,237,.04));">
+    <span>
+      <i class="bi bi-person-exclamation me-2" style="color:var(--accent);"></i>Pending Registrations
+      <span id="pendingBadge" class="badge ms-2" style="background:rgba(245,158,11,.2);color:#f59e0b;font-size:11px;"></span>
+    </span>
+    <button class="btn btn-sm btn-outline-secondary" onclick="loadPending()"><i class="bi bi-arrow-repeat me-1"></i>Refresh</button>
+  </div>
+  <div class="card-body p-0">
+    <div id="pendingList"><div class="text-center py-3 text-muted" style="font-size:13px;">Loading…</div></div>
+  </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -168,7 +183,47 @@ async function deleteUser(username) {
   else alert(d.message);
 }
 
+async function loadPending() {
+  const r = await fetch('/users/pending');
+  const d = await r.json();
+  const box = document.getElementById('pendingList');
+  const badge = document.getElementById('pendingBadge');
+  if (d.status !== 'ok') { box.innerHTML = '<div class="text-center py-3 text-muted" style="font-size:13px;">Could not load</div>'; return; }
+  const items = d.pending;
+  badge.textContent = items.length ? `${items.length} pending` : '';
+  if (!items.length) {
+    box.innerHTML = '<div class="text-center py-4" style="color:var(--muted);font-size:13px;"><i class="bi bi-check-circle me-1" style="color:#34d399;"></i>No pending registrations</div>';
+    return;
+  }
+  box.innerHTML = `<table class="table mb-0" style="font-size:13px;">
+    <thead class="table-light"><tr><th>Username</th><th>Full Name</th><th>Email</th><th>Requested</th><th>Action</th></tr></thead>
+    <tbody>${items.map(u => `
+      <tr>
+        <td class="fw-semibold"><i class="bi bi-person-circle me-1"></i>${u.username}</td>
+        <td>${u.full_name || '—'}</td>
+        <td style="color:#718096;">${u.email || '—'}</td>
+        <td style="font-size:11px;color:#94a3b8;">${(u.created_at||'').substring(0,10)}</td>
+        <td class="d-flex gap-2">
+          <button class="btn btn-sm" style="background:rgba(16,185,129,.15);color:#34d399;border:1px solid rgba(16,185,129,.3);font-size:11px;"
+            onclick="approveReg(${u.id},'approve')"><i class="bi bi-check2-circle me-1"></i>Approve</button>
+          <button class="btn btn-sm" style="background:rgba(239,68,68,.1);color:#f87171;border:1px solid rgba(239,68,68,.25);font-size:11px;"
+            onclick="approveReg(${u.id},'reject')"><i class="bi bi-x-circle me-1"></i>Reject</button>
+        </td>
+      </tr>`).join('')}</tbody></table>`;
+}
+
+async function approveReg(id, action) {
+  const r = await fetch('/users/approve-reg', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({id, action})
+  });
+  const d = await r.json();
+  if (d.status === 'ok') { loadPending(); if (action === 'approve') loadUsers(); }
+  else alert(d.message);
+}
+
 loadCaptcha();
 loadUsers();
+loadPending();
 </script>
 {% endblock %}

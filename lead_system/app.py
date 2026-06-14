@@ -11,6 +11,7 @@ from routes.activity  import activity_bp
 from routes.chatbot   import chatbot_bp
 from routes.settings  import settings_bp
 from database.db      import init_db
+from services.auth_service import seed_db_users, load_db_users
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "leadvault-fyp-2026-secret-key")
@@ -37,6 +38,8 @@ app.register_blueprint(chatbot_bp,  url_prefix="/chatbot")
 app.register_blueprint(settings_bp)
 
 init_db()
+seed_db_users()
+load_db_users()
 
 if __name__ == "__main__":
     print("✅  Database initialized")

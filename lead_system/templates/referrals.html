@@ -90,7 +90,7 @@
   </div>
 </div>
 
-{% if session.get('username') == 'admin' %}
+{% if session.get('username') == 'admin' or session.get('role') == 'admin' %}
 <!-- Admin panel -->
 <div class="card mt-4">
   <div class="card-header" style="background:linear-gradient(135deg,rgba(124,58,237,.15),rgba(124,58,237,.05));">
@@ -183,6 +183,6 @@ function statusBadge(s) {
 }
 
 loadReferrals();
-{% if session.get('username') == 'admin' %}loadAdmin();{% endif %}
+{% if session.get('username') == 'admin' or session.get('role') == 'admin' %}loadAdmin();{% endif %}
 </script>
 {% endblock %}

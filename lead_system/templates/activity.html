@@ -11,6 +11,7 @@
     border:1px solid rgba(167,139,250,.18);
     color:#fff; border-radius:14px; padding:14px 20px; margin-bottom:20px;
   }
+  .activity-row:hover { background:rgba(124,58,237,.05); }
   .overview-bar .ai-chip {
     display:inline-flex; align-items:center; gap:6px;
     background:rgba(167,139,250,.15); color:#a78bfa;
@@ -50,12 +51,18 @@ const actionIcons = {
   'search': 'bi-search', 'fetch': 'bi-cloud-download', 'classify': 'bi-cpu',
   'add_lead': 'bi-person-plus', 'delete_lead': 'bi-trash', 'email': 'bi-envelope',
   'bulk_email': 'bi-broadcast', 'login': 'bi-box-arrow-in-right',
-  'export': 'bi-download', 'duplicate': 'bi-files'
+  'export': 'bi-download', 'duplicate': 'bi-files',
+  'review': 'bi-star', 'referral': 'bi-cash-coin', 'edit_lead': 'bi-pencil'
 };
 const actionColors = {
   'search':'#7c3aed','fetch':'#0891b2','classify':'#0ea5e9','add_lead':'#16a34a',
   'delete_lead':'#ef4444','email':'#3b82f6','bulk_email':'#6d28d9','login':'#a78bfa',
-  'export':'#0891b2','duplicate':'#64748b'
+  'export':'#0891b2','duplicate':'#64748b','review':'#f59e0b','referral':'#10b981','edit_lead':'#6366f1'
+};
+const actionLinks = {
+  'search': '/search/', 'add_lead': '/search/', 'edit_lead': '/leads/',
+  'review': '/search/', 'referral': '/leads/referrals-page',
+  'fetch': '/fetch/', 'classify': '/classify/', 'export': '/leads/', 'email': '/email/'
 };
 
 async function loadActivity() {
@@ -69,12 +76,19 @@ async function loadActivity() {
   box.innerHTML = logs.map(l => {
     const icon = actionIcons[l.action] || 'bi-dot';
     const color = actionColors[l.action] || '#718096';
-    return `<div class="d-flex align-items-center gap-3 px-3 py-2" style="border-bottom:1px solid #f0f0f0;">
+    const link = actionLinks[l.action];
+    const clickable = link ? `onclick="window.location='${link}'" style="cursor:pointer;"` : '';
+    const hoverClass = link ? 'activity-row' : '';
+    return `<div class="d-flex align-items-center gap-3 px-3 py-2 ${hoverClass}" ${clickable}
+      style="border-bottom:1px solid rgba(0,0,0,.06); ${link ? 'cursor:pointer; transition:background .15s;' : ''}">
       <div style="width:34px;height:34px;border-radius:8px;background:${color}22;color:${color};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
         <i class="bi ${icon}"></i>
       </div>
       <div class="flex-grow-1">
-        <div style="font-size:13px;font-weight:600;color:#1a202c;">${l.action.replace('_',' ').toUpperCase()}</div>
+        <div style="font-size:13px;font-weight:600;color:#1a202c;">
+          ${l.action.replace(/_/g,' ').toUpperCase()}
+          ${link ? '<i class="bi bi-arrow-right ms-1" style="font-size:10px;opacity:.5;"></i>' : ''}
+        </div>
         <div style="font-size:12px;color:#718096;">${l.details || ''}</div>
       </div>
       <div class="text-end" style="font-size:11px;color:#a0aec0;">

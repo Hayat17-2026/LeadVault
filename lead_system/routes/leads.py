@@ -348,7 +348,7 @@ def my_referrals():
 @leads_bp.route("/all-referrals", methods=["GET"])
 @login_required
 def all_referrals():
-    if session.get("username") != "admin":
+    if session.get("username") != "admin" and session.get("role") != "admin":
         return jsonify({"status": "error", "message": "Admin only"}), 403
     db   = get_db()
     rows = db.execute("SELECT * FROM lead_referrals ORDER BY created_at DESC").fetchall()
@@ -358,7 +358,7 @@ def all_referrals():
 @leads_bp.route("/approve-referral", methods=["POST"])
 @login_required
 def approve_referral():
-    if session.get("username") != "admin":
+    if session.get("username") != "admin" and session.get("role") != "admin":
         return jsonify({"status": "error", "message": "Admin only"}), 403
     data       = request.get_json(force=True) or {}
     ref_id     = data.get("id")

@@ -79,5 +79,20 @@ def init_db():
         )
     """)
 
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id            INTEGER PRIMARY KEY AUTOINCREMENT,
+            username      TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            email         TEXT DEFAULT '',
+            full_name     TEXT DEFAULT '',
+            role          TEXT DEFAULT 'staff',
+            status        TEXT DEFAULT 'active',
+            security_q    TEXT DEFAULT 'What is your favorite color?',
+            security_a    TEXT DEFAULT '',
+            created_at    DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
     conn.commit()
     conn.close()

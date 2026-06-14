@@ -1,5 +1,4 @@
 import hashlib
-import os
 import time
 import random
 from functools import wraps
@@ -7,9 +6,9 @@ from flask import session, redirect, url_for, request, jsonify
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  USER ACCOUNTS
-#  Each user: password (hashed), email, security question + answer (hashed)
+#  Seed users are always active. Additional users come from the DB.
 # ══════════════════════════════════════════════════════════════════════════════
-USERS = {
+_SEED_USERS = {
     "admin": {
         "password":      hashlib.sha256("Admin@123".encode()).hexdigest(),
         "email":         "hayatseifeddine8@gmail.com",
@@ -25,6 +24,54 @@ USERS = {
         "security_a":    hashlib.sha256("beirut".encode()).hexdigest(),
     },
 }
+
+USERS = dict(_SEED_USERS)
+
+
+def _get_db():
+    from database.db import get_db
+    return get_db()
+
+
+def seed_db_users():
+    """Ensure seed users exist in the DB users table (called on startup)."""
+    try:
+        db = _get_db()
+        for uname, udata in _SEED_USERS.items():
+            existing = db.execute("SELECT id FROM users WHERE username=?", (uname,)).fetchone()
+            if not existing:
+                db.execute(
+                    "INSERT INTO users (username, password_hash, email, role, status, security_q, security_a) "
+                    "VALUES (?, ?, ?, ?, 'active', ?, ?)",
+                    (uname, udata["password"], udata.get("email", ""),
+                     udata.get("role", "staff"), udata.get("security_q", ""),
+                     udata.get("security_a", ""))
+                )
+        db.commit()
+        db.close()
+    except Exception as e:
+        print(f"[auth] seed_db_users error: {e}")
+
+
+def load_db_users():
+    """Load active non-seed users from DB into USERS dict (called on startup)."""
+    try:
+        db = _get_db()
+        rows = db.execute(
+            "SELECT * FROM users WHERE status='active' AND username NOT IN ('admin','hala')"
+        ).fetchall()
+        db.close()
+        for row in rows:
+            uname = row["username"]
+            USERS[uname] = {
+                "password":   row["password_hash"],
+                "email":      row["email"] or "",
+                "role":       row["role"] or "staff",
+                "security_q": row["security_q"] or "What is your favorite color?",
+                "security_a": row["security_a"] or "",
+            }
+    except Exception as e:
+        print(f"[auth] load_db_users error: {e}")
 
 # ── Rate limiting store ───────────────────────────────────────────────────────
 _rate_store = {}
@@ -151,7 +198,7 @@ def get_current_user():
 #  USER MANAGEMENT (admin only)
 # ══════════════════════════════════════════════════════════════════════════════
 def add_user(username: str, password: str, email: str, role: str = "staff") -> dict:
-    """Add a new user. Only callable by admin."""
+    """Add a new user (admin action). Saves to USERS dict + DB."""
     username = username.strip().lower()
     if not username or not password:
         return {"status": "error", "message": "Username and password required"}
@@ -160,14 +207,107 @@ def add_user(username: str, password: str, email: str, role: str = "staff") -> d
     if len(password) < 5:
         return {"status": "error", "message": "Password must be at least 5 characters"}
 
+    pw_hash = hash_password(password)
     USERS[username] = {
-        "password":   hash_password(password),
+        "password":   pw_hash,
         "email":      email or "",
         "role":       role,
         "security_q": "What is your favorite color?",
         "security_a": hash_value("blue"),
     }
+    try:
+        db = _get_db()
+        existing = db.execute("SELECT id FROM users WHERE username=?", (username,)).fetchone()
+        if existing:
+            db.execute(
+                "UPDATE users SET password_hash=?, email=?, role=?, status='active' WHERE username=?",
+                (pw_hash, email or "", role, username)
+            )
+        else:
+            db.execute(
+                "INSERT INTO users (username, password_hash, email, role, status, security_q, security_a) "
+                "VALUES (?, ?, ?, ?, 'active', 'What is your favorite color?', ?)",
+                (username, pw_hash, email or "", role, hash_value("blue"))
+            )
+        db.commit()
+        db.close()
+    except Exception as e:
+        print(f"[auth] add_user DB error: {e}")
     return {"status": "ok", "message": f"User '{username}' created"}
+
+
+def register_user(username: str, password: str, email: str, full_name: str,
+                  security_q: str, security_a: str) -> dict:
+    """Self-registration — adds to DB as pending, requires admin approval."""
+    username = username.strip().lower()
+    if not username or not password:
+        return {"status": "error", "message": "Username and password required"}
+    if username in USERS:
+        return {"status": "error", "message": "Username already taken"}
+    pw_check = validate_password_strength(password)
+    if not pw_check["valid"]:
+        return {"status": "error", "message": pw_check["message"]}
+    try:
+        db = _get_db()
+        existing = db.execute("SELECT id, status FROM users WHERE username=?", (username,)).fetchone()
+        if existing:
+            db.close()
+            if existing["status"] == "pending":
+                return {"status": "error", "message": "Registration already pending — wait for admin approval"}
+            return {"status": "error", "message": "Username already taken"}
+        db.execute(
+            "INSERT INTO users (username, password_hash, email, full_name, role, status, security_q, security_a) "
+            "VALUES (?, ?, ?, ?, 'staff', 'pending', ?, ?)",
+            (username, hash_password(password), email or "", full_name or "",
+             security_q or "What is your favorite color?", hash_value(security_a or ""))
+        )
+        db.commit()
+        db.close()
+    except Exception as e:
+        return {"status": "error", "message": f"Registration failed: {e}"}
+    return {"status": "ok", "message": "Registration submitted — an admin will review your request"}
+
+
+def list_pending_registrations() -> list:
+    """Return all pending user registrations."""
+    try:
+        db = _get_db()
+        rows = db.execute(
+            "SELECT id, username, email, full_name, created_at FROM users WHERE status='pending' ORDER BY created_at DESC"
+        ).fetchall()
+        db.close()
+        return [dict(r) for r in rows]
+    except Exception as e:
+        print(f"[auth] list_pending error: {e}")
+        return []
+
+
+def approve_registration(user_id: int, action: str) -> dict:
+    """Admin approves or rejects a pending registration."""
+    try:
+        db = _get_db()
+        row = db.execute("SELECT * FROM users WHERE id=? AND status='pending'", (user_id,)).fetchone()
+        if not row:
+            db.close()
+            return {"status": "error", "message": "Registration not found or already processed"}
+        if action == "approve":
+            db.execute("UPDATE users SET status='active' WHERE id=?", (user_id,))
+            db.commit()
+            # Load into USERS dict so they can log in immediately
+            USERS[row["username"]] = {
+                "password":   row["password_hash"],
+                "email":      row["email"] or "",
+                "role":       "staff",
+                "security_q": row["security_q"] or "What is your favorite color?",
+                "security_a": row["security_a"] or "",
+            }
+        else:
+            db.execute("UPDATE users SET status='rejected' WHERE id=?", (user_id,))
+            db.commit()
+        db.close()
+        return {"status": "ok"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 def delete_user(username: str) -> dict:
     """Delete a user. Cannot delete admin."""
