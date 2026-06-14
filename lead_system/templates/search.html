@@ -327,6 +327,33 @@ function _renderKwDL() {
 }
 _renderKwDL();
 
+// Restore previous search results if user navigated away and came back
+(function restoreSession() {
+  const saved = sessionStorage.getItem('lv_results');
+  if (!saved) return;
+  try {
+    const results  = JSON.parse(saved);
+    const savedTags = JSON.parse(sessionStorage.getItem('lv_tags') || '[]');
+    const platform = sessionStorage.getItem('lv_platform') || 'all';
+    const region   = sessionStorage.getItem('lv_region')   || 'global';
+    if (!results.length) return;
+    // Restore tags
+    tags = savedTags;
+    renderTags();
+    // Restore platform/region selects
+    const pEl = document.getElementById('platform');
+    const rEl = document.getElementById('region');
+    if (pEl) pEl.value = platform;
+    if (rEl) rEl.value = region;
+    // Show results
+    document.getElementById('logWrap').style.display = 'block';
+    document.getElementById('logBox').innerHTML =
+      `<span style="color:#34d399;">[Restored] ${results.length} results from your last search (${savedTags.join(', ')})</span>`;
+    renderResults(results);
+    document.getElementById('nextStep').style.display = 'block';
+  } catch(e) {}
+})();
+
 function addTag() {
   const inp = document.getElementById('kwInput');
   const v = inp.value.trim();
@@ -757,6 +784,11 @@ async function runSearch() {
       setTimeout(() => {
         log('Done. Results ready below.', 'ok');
         renderResults(data.results);
+        // Save results so they survive navigation away and back
+        sessionStorage.setItem('lv_results', JSON.stringify(data.results));
+        sessionStorage.setItem('lv_tags', JSON.stringify(tags));
+        sessionStorage.setItem('lv_platform', platform);
+        sessionStorage.setItem('lv_region', region);
         document.getElementById('nextStep').style.display = 'block';
         btn.disabled = false;
         btn.innerHTML = '<i class="bi bi-arrow-repeat me-1"></i> Run Again';
