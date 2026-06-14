@@ -834,7 +834,12 @@ async function loadReviews(url) {
   } catch(e) { document.getElementById('modalReviewsList').innerHTML = ''; }
 }
 async function submitReview() {
-  if (!_currentRating) { alert('Please select a star rating first'); return; }
+  if (!_currentRating) {
+    const msg = document.getElementById('reviewMsg');
+    msg.innerHTML = '<span style="color:#fbbf24;"><i class="bi bi-star me-1"></i>Please select a star rating first</span>';
+    setTimeout(() => { msg.innerHTML = ''; }, 3000);
+    return;
+  }
   const r = activeLeadData;
   const comment = document.getElementById('reviewComment').value.trim();
   const resp = await fetch('/leads/add-review', {
