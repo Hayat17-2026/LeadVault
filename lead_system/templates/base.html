@@ -379,6 +379,29 @@
     <small>AI LEAD INTELLIGENCE</small>
   </div>
   <nav class="sidebar-nav">
+    {% set role = session.get('role', 'user') %}
+
+    {# ── USER role: search + commissions only ── #}
+    {% if role == 'user' %}
+    <div class="nav-section">My Account</div>
+    <a href="/" class="{{ 'active' if request.path == '/' else '' }}">
+      <i class="bi bi-grid-1x2"></i> Dashboard
+    </a>
+    <div class="nav-section">Discover</div>
+    <a href="/search/" class="{{ 'active' if '/search' in request.path else '' }}">
+      <i class="bi bi-search"></i> Search &amp; Research
+    </a>
+    <div class="nav-section">Earnings</div>
+    <a href="/leads/referrals-page" class="{{ 'active' if '/referrals' in request.path else '' }}">
+      <i class="bi bi-cash-coin"></i> My Commissions
+    </a>
+    <div class="nav-section">Account</div>
+    <a href="/settings" class="{{ 'active' if '/settings' in request.path else '' }}">
+      <i class="bi bi-gear"></i> Settings
+    </a>
+
+    {# ── STAFF role: full pipeline, no admin tools ── #}
+    {% elif role == 'staff' %}
     <div class="nav-section">Overview</div>
     <a href="/" class="{{ 'active' if request.path == '/' else '' }}">
       <i class="bi bi-grid-1x2"></i> Dashboard
@@ -396,7 +419,7 @@
       <i class="bi bi-cpu"></i> AI Classify
       <span class="step-badge">Step 3</span>
     </a>
-    <a href="/leads/" class="{{ 'active' if '/leads' in request.path else '' }}">
+    <a href="/leads/" class="{{ 'active' if request.path.startswith('/leads') and '/referral' not in request.path else '' }}">
       <i class="bi bi-people"></i> Leads Database
       <span class="step-badge">Step 4</span>
     </a>
@@ -404,6 +427,7 @@
       <i class="bi bi-envelope-paper"></i> Email Outreach
       <span class="step-badge">Step 5</span>
     </a>
+    <div class="nav-section">More</div>
     <a href="/activity/" class="{{ 'active' if '/activity' in request.path else '' }}">
       <i class="bi bi-clock-history"></i> Activity Log
     </a>
@@ -411,12 +435,52 @@
       <i class="bi bi-cash-coin"></i> My Commissions
     </a>
     <div class="nav-section">System</div>
-    {% if session.get('username') == 'admin' %}
+    <a href="/settings" class="{{ 'active' if '/settings' in request.path else '' }}">
+      <i class="bi bi-gear"></i> Settings
+    </a>
+
+    {# ── ADMIN role: everything ── #}
+    {% else %}
+    <div class="nav-section">Overview</div>
+    <a href="/" class="{{ 'active' if request.path == '/' else '' }}">
+      <i class="bi bi-grid-1x2"></i> Dashboard
+    </a>
+    <div class="nav-section">Pipeline</div>
+    <a href="/search/" class="{{ 'active' if '/search' in request.path else '' }}">
+      <i class="bi bi-search"></i> Search &amp; Research
+      <span class="step-badge">Step 1</span>
+    </a>
+    <a href="/fetch/" class="{{ 'active' if '/fetch' in request.path else '' }}">
+      <i class="bi bi-cloud-download"></i> Web Fetch &amp; Scrape
+      <span class="step-badge">Step 2</span>
+    </a>
+    <a href="/classify/" class="{{ 'active' if '/classify' in request.path else '' }}">
+      <i class="bi bi-cpu"></i> AI Classify
+      <span class="step-badge">Step 3</span>
+    </a>
+    <a href="/leads/" class="{{ 'active' if request.path.startswith('/leads') and '/referral' not in request.path else '' }}">
+      <i class="bi bi-people"></i> Leads Database
+      <span class="step-badge">Step 4</span>
+    </a>
+    <a href="/email/" class="{{ 'active' if '/email' in request.path else '' }}">
+      <i class="bi bi-envelope-paper"></i> Email Outreach
+      <span class="step-badge">Step 5</span>
+    </a>
+    <div class="nav-section">More</div>
+    <a href="/activity/" class="{{ 'active' if '/activity' in request.path else '' }}">
+      <i class="bi bi-clock-history"></i> Activity Log
+    </a>
+    <a href="/leads/referrals-page" class="{{ 'active' if '/referrals' in request.path else '' }}">
+      <i class="bi bi-cash-coin"></i> My Commissions
+    </a>
+    <div class="nav-section">System</div>
     <a href="/users" class="{{ 'active' if '/users' in request.path else '' }}">
       <i class="bi bi-person-gear"></i> User Management
     </a>
+    <a href="/settings" class="{{ 'active' if '/settings' in request.path else '' }}">
+      <i class="bi bi-gear"></i> Settings
+    </a>
     {% endif %}
-    <a href="/settings" class="{{ 'active' if '/settings' in request.path else '' }}"><i class="bi bi-gear"></i> Settings</a>
     <div style="margin-top:auto;"></div>
     <div style="padding:12px 20px; border-top:1px solid rgba(255,255,255,0.08); margin-top:16px;">
       <div style="font-size:12px; color:rgba(255,255,255,0.4); margin-bottom:8px;">

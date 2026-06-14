@@ -41,7 +41,7 @@ def login():
         selected_role = data.get("role", "")
         actual_role = get_user_role(username)
         if selected_role and selected_role != actual_role:
-            nice = "Administrator" if actual_role == "admin" else "Staff Member"
+            nice = {"admin": "Administrator", "staff": "Staff Member", "user": "User"}.get(actual_role, actual_role.title())
             return jsonify({"status": "error", "message": f"This account is registered as {nice}. Please select the correct account type."}), 403
 
         session["logged_in"] = True
@@ -77,7 +77,7 @@ def login_check():
     selected_role = data.get("role", "")
     actual_role   = get_user_role(username)
     if selected_role and selected_role != actual_role:
-        nice = "Administrator" if actual_role == "admin" else "Staff Member"
+        nice = {"admin": "Administrator", "staff": "Staff Member", "user": "User"}.get(actual_role, actual_role.title())
         return jsonify({"status": "error", "message": f"This account is registered as {nice}. Please select the correct account type."}), 403
 
     return jsonify({"status": "ok"})
@@ -195,6 +195,9 @@ def create_user():
     password = (d.get("password") or "").strip()
     confirm  = (d.get("confirm") or "").strip()
     email    = (d.get("email") or "").strip()
+    role     = (d.get("role") or "staff").strip()
+    if role not in ("staff", "admin"):
+        role = "staff"
     captcha_token  = d.get("captcha_token", "")
     captcha_answer = d.get("captcha_answer", "")
 
@@ -211,7 +214,7 @@ def create_user():
     if not strength["valid"]:
         return jsonify({"status": "error", "message": strength["message"]}), 400
 
-    result = add_user(username, password, email)
+    result = add_user(username, password, email, role)
     code = 200 if result["status"] == "ok" else 400
     return jsonify(result), code
 

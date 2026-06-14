@@ -32,13 +32,23 @@
 </div>
 
 <div class="row g-3">
-  <!-- Add user form -->
+  <!-- Add Staff form (admin only) -->
   <div class="col-md-5">
     <div class="card">
-      <div class="card-header"><i class="bi bi-person-plus me-2"></i>Add New User</div>
+      <div class="card-header">
+        <i class="bi bi-person-badge me-2"></i>Add Staff Member
+        <small class="text-muted ms-2" style="font-size:11px;">(Admin use only)</small>
+      </div>
       <div class="card-body">
         <div id="addMsg" class="mb-2" style="display:none;"></div>
 
+        <div class="mb-2">
+          <label class="form-label" style="font-size:13px;font-weight:600;">Role</label>
+          <select class="form-select form-select-sm" id="newRole">
+            <option value="staff">Staff Member</option>
+            <option value="admin">Administrator</option>
+          </select>
+        </div>
         <div class="mb-2">
           <label class="form-label" style="font-size:13px;font-weight:600;">Username</label>
           <input class="form-control form-control-sm" id="newUsername"
@@ -146,6 +156,7 @@ async function loadUsers() {
 async function addUser() {
   const msg = document.getElementById('addMsg');
   const data = {
+    role:     document.getElementById('newRole').value,
     username: document.getElementById('newUsername').value,
     email:    document.getElementById('newEmail').value,
     password: document.getElementById('newPassword').value,

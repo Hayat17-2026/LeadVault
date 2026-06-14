@@ -257,7 +257,7 @@ def register_user(username: str, password: str, email: str, full_name: str,
             return {"status": "error", "message": "Username already taken"}
         db.execute(
             "INSERT INTO users (username, password_hash, email, full_name, role, status, security_q, security_a) "
-            "VALUES (?, ?, ?, ?, 'staff', 'pending', ?, ?)",
+            "VALUES (?, ?, ?, ?, 'user', 'pending', ?, ?)",
             (username, hash_password(password), email or "", full_name or "",
              security_q or "What is your favorite color?", hash_value(security_a or ""))
         )
@@ -297,7 +297,7 @@ def approve_registration(user_id: int, action: str) -> dict:
             USERS[row["username"]] = {
                 "password":   row["password_hash"],
                 "email":      row["email"] or "",
-                "role":       "staff",
+                "role":       row["role"] or "user",
                 "security_q": row["security_q"] or "What is your favorite color?",
                 "security_a": row["security_a"] or "",
             }

@@ -92,9 +92,11 @@
 
     <!-- Export bar (shows when there are results) -->
     <div id="exportBar" style="display:none;" class="mb-2 d-flex justify-content-end gap-2">
+      {% if session.get('role') != 'user' %}
       <button class="btn btn-sm btn-accent" id="saveAllBtn" onclick="saveAllToDb()">
         <i class="bi bi-database-add me-1"></i>Save All to DB
       </button>
+      {% endif %}
       <div class="dropdown">
         <button class="btn btn-sm btn-outline-success dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
           <i class="bi bi-file-earmark-excel me-1"></i>Export to Excel
@@ -261,9 +263,11 @@
           style="background:rgba(16,185,129,.12); color:#34d399; border:1px solid rgba(16,185,129,.25); font-size:12px;">
           <i class="bi bi-cash-coin me-1"></i>My Commissions
         </button>
+        {% if session.get('role') != 'user' %}
         <button class="btn btn-sm btn-accent" id="modalSaveBtn" onclick="queueFromModal()">
           <i class="bi bi-database-add me-1"></i>Save to DB
         </button>
+        {% endif %}
       </div>
 
     </div>
